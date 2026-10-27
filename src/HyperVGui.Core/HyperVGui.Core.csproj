@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\ApplyImage.cmd" />
+    <EmbeddedResource Include="Resources\server2019-ja-17763.737-gui.json" />
+    <EmbeddedResource Include="Resources\server2019-reference-identities.json" />
+  </ItemGroup>
+</Project>

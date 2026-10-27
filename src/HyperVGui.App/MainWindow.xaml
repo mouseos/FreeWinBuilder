@@ -1,0 +1,75 @@
+<Window
+    x:Class="HyperVGui.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Hyper-V GUI Builder">
+    <Window.SystemBackdrop><MicaBackdrop Kind="BaseAlt"/></Window.SystemBackdrop>
+    <Grid x:Name="Root">
+        <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Spacing="12" Padding="24,0" VerticalAlignment="Center">
+            <FontIcon Glyph="&#xE7F8;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+            <TextBlock Text="Hyper-V GUI Builder" FontWeight="SemiBold"/>
+        </StackPanel>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <StackPanel Padding="16,24" Spacing="8">
+                <TextBlock Text="作成手順" FontSize="12" Margin="12,0,0,14" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                <ListView x:Name="StepRail" SelectionChanged="OnStepChanged" IsItemClickEnabled="False">
+                    <ListViewItem><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="1"/><TextBlock Text="はじめに"/></StackPanel></ListViewItem>
+                    <ListViewItem><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="2"/><TextBlock Text="入力ISO"/></StackPanel></ListViewItem>
+                    <ListViewItem><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="3"/><TextBlock Text="作成設定"/></StackPanel></ListViewItem>
+                    <ListViewItem><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="4"/><TextBlock Text="内容の確認"/></StackPanel></ListViewItem>
+                    <ListViewItem><StackPanel Orientation="Horizontal" Spacing="14"><TextBlock Text="5"/><TextBlock Text="ISOの作成"/></StackPanel></ListViewItem>
+                </ListView>
+            </StackPanel>
+            <Grid Grid.Column="1" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="16,0,0,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1,1,0,0">
+                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <ScrollViewer Padding="40,32" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <StackPanel x:Name="WelcomePanel" Spacing="20">
+                            <TextBlock Text="はじめに" FontSize="36" FontWeight="Light"/>
+                            <TextBlock Text="Hyper-V Server 2019 のGUI付きISOを作成します。" FontSize="16" TextWrapping="Wrap"/>
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="24">
+                                <StackPanel Spacing="12"><FontIcon Glyph="&#xE7F8;" FontSize="32" HorizontalAlignment="Left" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/><TextBlock Text="必要なもの" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="Hyper-V Server と同じ言語の Windows Server 2019 ISOを選択し、保存先とオプションを確認します。" TextWrapping="Wrap"/></StackPanel>
+                            </Border>
+                            <TextBlock Text="元のISOは変更せず、新しいISOを保存します。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <StackPanel x:Name="SourcePanel" Visibility="Collapsed" Spacing="18">
+                            <TextBlock Text="入力ISO" FontSize="32" FontWeight="SemiBold"/>
+                            <TextBlock Text="同じ言語のISOを2つ指定してください。" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="Hyper-V Server 2019（推奨: 17763.737）"/>
+                            <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="HyperPath" PlaceholderText="ISOを選択" AutomationProperties.Name="Hyper-V Server ISO"/><Button Grid.Column="1" Content="参照…" Tag="hyper" Click="OnChooseIso" AutomationProperties.Name="Hyper-V Server ISOを選択"/></Grid>
+                            <TextBlock Text="Windows Server 2019 Desktop Experience（推奨: 17763.1）"/>
+                            <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="DonorPath" PlaceholderText="ISOを選択" AutomationProperties.Name="GUIのISO"/><Button Grid.Column="1" Content="参照…" Tag="donor" Click="OnChooseIso" AutomationProperties.Name="GUIのISOを選択"/></Grid>
+                        </StackPanel>
+                        <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Spacing="20">
+                            <TextBlock Text="作成設定" FontSize="32" FontWeight="SemiBold"/>
+                            <TextBlock Text="保存先と追加する機能を選択します。" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="保存先フォルダー"/>
+                            <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="DestinationPath" AutomationProperties.Name="保存先フォルダー"/><Button Grid.Column="1" Content="参照…" Click="OnChooseFolder" AutomationProperties.Name="保存先フォルダーを選択"/></Grid>
+                            <CheckBox x:Name="WirelessOption" Content="Wi-Fi機能を追加する"/>
+                            <TextBlock Text="保存先の中に新しい作業フォルダーを作成します。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <StackPanel x:Name="ReviewPanel" Visibility="Collapsed" Spacing="18">
+                            <TextBlock Text="内容の確認" FontSize="32" FontWeight="SemiBold"/>
+                            <TextBlock Text="選択した内容を確認して、ISOの作成を開始します。" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="24"><TextBlock x:Name="ReviewText" TextWrapping="Wrap" IsTextSelectionEnabled="True"/></Border>
+                        </StackPanel>
+                        <StackPanel x:Name="BuildPanel" Visibility="Collapsed" Spacing="18">
+                            <TextBlock Text="ISOの作成" FontSize="32" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="StatusText" Text="作成を開始しています…" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+                            <ProgressBar x:Name="BuildProgress" IsIndeterminate="True"/>
+                            <Button x:Name="OpenButton" Content="保存先を開く" Click="OnOpenOutput" IsEnabled="False" HorizontalAlignment="Left"/>
+                            <Expander Header="処理ログ" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"><TextBox x:Name="BuildLog" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" Height="180" FontFamily="Consolas"/></Expander>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+                <Grid Grid.Row="1" Padding="40,16,40,24" ColumnSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <Button x:Name="BackButton" Content="戻る" Click="OnBack"/>
+                    <Button x:Name="NextButton" Grid.Column="2" Content="次へ" Style="{StaticResource AccentButtonStyle}" Click="OnNext"/>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
