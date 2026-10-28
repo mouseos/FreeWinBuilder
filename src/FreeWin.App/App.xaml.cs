@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml;
 
-namespace HyperVGui.App;
+namespace FreeWin.App;
 
 public partial class App : Application
 {

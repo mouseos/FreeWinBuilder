@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 reg query HKLM\SYSTEM\CurrentControlSet\Control\MiniNT >nul 2>&1 || exit /b 89
 set "INPUT=%~dp0"
-if not exist "%INPUT%HVGUI-SERVICING.TAG" exit /b 90
+if not exist "%INPUT%FREEWIN-SERVICING.TAG" exit /b 90
 call :apply >"%INPUT%servicing.log" 2>&1
 set "RESULT=!errorlevel!"
 echo RESULT=!RESULT!>>"%INPUT%servicing.log"
@@ -16,7 +16,7 @@ mkdir S:\scratch S:\image S:\logs
 set "SOURCE="
 set "PACKAGES="
 for %%d in (D E F G H I J K L M N O P Q R T U V W Y Z) do if exist %%d:\sources\install.wim set "SOURCE=%%d:"
-for %%d in (D E F G H I J K L M N O P Q R T U V W Y Z) do if exist %%d:\HVGUI-PACKAGES.TAG set "PACKAGES=%%d:\packages"
+for %%d in (D E F G H I J K L M N O P Q R T U V W Y Z) do if exist %%d:\FREEWIN-PACKAGES.TAG set "PACKAGES=%%d:\packages"
 if not defined SOURCE exit /b 92
 if not defined PACKAGES exit /b 92
 copy "!SOURCE!\sources\install.wim" S:\target.wim >nul || exit /b 93
@@ -37,24 +37,24 @@ for /f "usebackq tokens=1,2 delims=|" %%f in ("%INPUT%features.txt") do (
   if not !RESULT!==0 if not !RESULT!==3010 exit /b 97
 )
 if not exist S:\image\Windows\explorer.exe exit /b 98
-reg load HKLM\HVGUI S:\image\Windows\System32\config\SOFTWARE || exit /b 99
+reg load HKLM\FREEWIN S:\image\Windows\System32\config\SOFTWARE || exit /b 99
 set "VALID=0"
-for /f "tokens=1,2,3" %%a in ('reg query "HKLM\HVGUI\Microsoft\Windows NT\CurrentVersion\Server\ServerLevels" /v Server-Gui-Shell') do if "%%a"=="Server-Gui-Shell" if "%%c"=="0x1" set "VALID=1"
+for /f "tokens=1,2,3" %%a in ('reg query "HKLM\FREEWIN\Microsoft\Windows NT\CurrentVersion\Server\ServerLevels" /v Server-Gui-Shell') do if "%%a"=="Server-Gui-Shell" if "%%c"=="0x1" set "VALID=1"
 set "EXPLORER=0"
-for /f "tokens=1,2,3" %%a in ('reg query "HKLM\HVGUI\Microsoft\Windows NT\CurrentVersion\Winlogon\AlternateShells\AvailableShells" /v 60000') do if "%%a"=="60000" if /i "%%c"=="explorer.exe" set "EXPLORER=1"
+for /f "tokens=1,2,3" %%a in ('reg query "HKLM\FREEWIN\Microsoft\Windows NT\CurrentVersion\Winlogon\AlternateShells\AvailableShells" /v 60000') do if "%%a"=="60000" if /i "%%c"=="explorer.exe" set "EXPLORER=1"
 if not "!EXPLORER!"=="1" set "VALID=0"
 if "!VALID!"=="1" (
-  reg query "HKLM\HVGUI\Microsoft\Windows\CurrentVersion\Run" >nul 2>&1
+  reg query "HKLM\FREEWIN\Microsoft\Windows\CurrentVersion\Run" >nul 2>&1
   if errorlevel 1 set "VALID=0"
-  reg query "HKLM\HVGUI\Microsoft\Windows\CurrentVersion\Run" /v sconfig >nul 2>&1
+  reg query "HKLM\FREEWIN\Microsoft\Windows\CurrentVersion\Run" /v sconfig >nul 2>&1
   if not errorlevel 1 (
-    reg delete "HKLM\HVGUI\Microsoft\Windows\CurrentVersion\Run" /v sconfig /f >nul 2>&1
+    reg delete "HKLM\FREEWIN\Microsoft\Windows\CurrentVersion\Run" /v sconfig /f >nul 2>&1
     if errorlevel 1 set "VALID=0"
-    reg query "HKLM\HVGUI\Microsoft\Windows\CurrentVersion\Run" /v sconfig >nul 2>&1
+    reg query "HKLM\FREEWIN\Microsoft\Windows\CurrentVersion\Run" /v sconfig >nul 2>&1
     if not errorlevel 1 set "VALID=0"
   )
 )
-reg unload HKLM\HVGUI || exit /b 99
+reg unload HKLM\FREEWIN || exit /b 99
 if not "!VALID!"=="1" exit /b 99
 dism /English /Capture-Image /ImageFile:S:\patched.wim /CaptureDir:S:\image /Name:"Hyper-V Server 2019" /Compress:fast /CheckIntegrity /ScratchDir:S:\scratch /LogPath:S:\logs\capture.log || exit /b 100
 exit /b 0

@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 /// <summary>Collects additional signed package dependencies introduced by localized media.</summary>
 public static class RecipeDependencyExpander

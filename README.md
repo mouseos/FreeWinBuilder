@@ -1,4 +1,4 @@
-# Hyper-V GUI Builder
+# FreeWin Builder
 
 [日本語](#日本語)
 
@@ -14,17 +14,17 @@ Other 17763 builds can be selected; the build stops if required components are m
 
 ## Use
 
-1. Download and extract the latest package from [Releases](https://github.com/mouseos/HyperVGuiBuilder/releases/latest).
+1. Download and extract the latest package from [Releases](https://github.com/mouseos/FreeWinBuilder/releases/latest).
 2. In the extracted folder, run `powershell -ExecutionPolicy Bypass -File .\scripts\Install-Dependencies.ps1`. This downloads QEMU and OSCDIMG.
-3. Open `dist\HyperVGui.App.exe`, select both ISOs and an output folder, and start the build.
+3. Open `dist\FreeWin.App.exe`, select both ISOs and an output folder, and start the build.
 
-The app uses Japanese when Windows uses Japanese and English otherwise. To override it, set `HYPERVGUI_LANGUAGE` to `ja` or `en` before launching.
+The app uses Japanese when Windows uses Japanese and English otherwise. To override it, set `FREEWIN_LANGUAGE` to `ja` or `en` before launching.
 
 To build from source, install the .NET 8 SDK and run:
 
 ```powershell
-dotnet publish src/HyperVGui.App/HyperVGui.App.csproj -c Release -p:Platform=x64 -o dist
-dotnet publish src/HyperVGui.Worker/HyperVGui.Worker.csproj -c Release -o dist/worker
+dotnet publish src/FreeWin.App/FreeWin.App.csproj -c Release -p:Platform=x64 -o dist
+dotnet publish src/FreeWin.Worker/FreeWin.Worker.csproj -c Release -o dist/worker
 ```
 
 ## 日本語
@@ -41,10 +41,10 @@ Hyper-V Server 2019にデスクトップを追加したインストールISOを�
 
 ### 使い方
 
-1. [Releases](https://github.com/mouseos/HyperVGuiBuilder/releases/latest)から最新版をダウンロードして展開します。
+1. [Releases](https://github.com/mouseos/FreeWinBuilder/releases/latest)から最新版をダウンロードして展開します。
 2. 展開したフォルダーで `powershell -ExecutionPolicy Bypass -File .\scripts\Install-Dependencies.ps1` を実行します。QEMUとOSCDIMGがダウンロードされます。
-3. `dist\HyperVGui.App.exe` を開き、2つのISOと保存先を選んで作成を開始します。
+3. `dist\FreeWin.App.exe` を開き、2つのISOと保存先を選んで作成を開始します。
 
-画面はWindowsが日本語なら日本語、それ以外は英語です。変更したい場合は、起動前に環境変数 `HYPERVGUI_LANGUAGE` を `ja` または `en` に設定してください。
+画面はWindowsが日本語なら日本語、それ以外は英語です。変更したい場合は、起動前に環境変数 `FREEWIN_LANGUAGE` を `ja` または `en` に設定してください。
 
 ソースからビルドする場合は.NET 8 SDKをインストールし、上記の `dotnet publish` を実行してください。

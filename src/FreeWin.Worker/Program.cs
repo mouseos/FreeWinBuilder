@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using HyperVGui.Core;
+using FreeWin.Core;
 
 if (args.Length != 1) { Console.Error.WriteLine("Expected a job configuration file."); return 2; }
 var settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(args[0])) ?? throw new InvalidDataException("Invalid job settings.");
@@ -18,7 +18,7 @@ void Status(string phase, string message)
 try
 {
     var recipe = Path.Combine(job, "recipe.json");
-    using (var resource = typeof(SourceBuilder).Assembly.GetManifestResourceStream("HyperVGui.Core.Resources.server2019-ja-17763.737-gui.json") ?? throw new InvalidDataException("Missing component recipe."))
+    using (var resource = typeof(SourceBuilder).Assembly.GetManifestResourceStream("FreeWin.Core.Resources.server2019-ja-17763.737-gui.json") ?? throw new InvalidDataException("Missing component recipe."))
     using (var dest = File.Create(recipe)) resource.CopyTo(dest);
     Status("preparing", "入力ISOから部品を準備中");
     var sources = SourceBuilder.Prepare(settings.Hyper, settings.Gui, Path.Combine(job, "sources"), recipe, settings.SevenZip, message => Status("preparing", message));

@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 /// <summary>Maps the reference recipe to the matching language components in a donor image.</summary>
 public static class RecipeLocalizer
@@ -35,7 +35,7 @@ public static class RecipeLocalizer
     {
         if (language.Equals("ja-JP", StringComparison.OrdinalIgnoreCase)) return;
         language = CultureInfo.GetCultureInfo(language).Name;
-        using var resource = typeof(RecipeLocalizer).Assembly.GetManifestResourceStream("HyperVGui.Core.Resources.server2019-reference-identities.json")
+        using var resource = typeof(RecipeLocalizer).Assembly.GetManifestResourceStream("FreeWin.Core.Resources.server2019-reference-identities.json")
             ?? throw new InvalidDataException("Missing reference component identities.");
         var reference = JsonSerializer.Deserialize<Dictionary<string, Identity>>(resource)
             ?? throw new InvalidDataException("Invalid reference component identities.");

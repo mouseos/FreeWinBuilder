@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 /// <summary>Applies the components inside a dedicated, file-backed WinPE virtual machine.</summary>
 public static class ServicingVm
@@ -20,10 +20,10 @@ public static class ServicingVm
         var input = Path.Combine(vm, "input"); var packages = Path.Combine(vm, "package-media");
         var floppy = Path.Combine(vm, "autostart");
         Directory.CreateDirectory(input); Directory.CreateDirectory(packages); Directory.CreateDirectory(floppy);
-        File.WriteAllText(Path.Combine(input, "HVGUI-SERVICING.TAG"), "Hyper-V GUI servicing\r\n", Encoding.ASCII);
-        File.WriteAllText(Path.Combine(packages, "HVGUI-PACKAGES.TAG"), "Hyper-V GUI packages\r\n", Encoding.ASCII);
-        File.WriteAllText(Path.Combine(input, "diskpart.txt"), "select disk 0\r\nconvert mbr\r\ncreate partition primary\r\nformat fs=ntfs quick label=HVGUI-SCRATCH\r\nassign letter=S\r\nexit\r\n", Encoding.ASCII);
-        using (var resource = typeof(ServicingVm).Assembly.GetManifestResourceStream("HyperVGui.Core.Resources.ApplyImage.cmd") ?? throw new InvalidDataException("Missing servicing resource."))
+        File.WriteAllText(Path.Combine(input, "FREEWIN-SERVICING.TAG"), "Hyper-V GUI servicing\r\n", Encoding.ASCII);
+        File.WriteAllText(Path.Combine(packages, "FREEWIN-PACKAGES.TAG"), "Hyper-V GUI packages\r\n", Encoding.ASCII);
+        File.WriteAllText(Path.Combine(input, "diskpart.txt"), "select disk 0\r\nconvert mbr\r\ncreate partition primary\r\nformat fs=ntfs quick label=FREEWIN-SCRATCH\r\nassign letter=S\r\nexit\r\n", Encoding.ASCII);
+        using (var resource = typeof(ServicingVm).Assembly.GetManifestResourceStream("FreeWin.Core.Resources.ApplyImage.cmd") ?? throw new InvalidDataException("Missing servicing resource."))
         using (var destination = File.Create(Path.Combine(input, "apply.cmd"))) resource.CopyTo(destination);
         var inputLocale = source.Language.Equals("ja-JP", StringComparison.OrdinalIgnoreCase) ? "0411:00000411" : source.Language;
         var unattended = Autounattend.Replace("ja-JP", source.Language, StringComparison.OrdinalIgnoreCase)
@@ -61,7 +61,7 @@ public static class ServicingVm
         CollectionBuilder.Run(qemuImg, ["convert", "-f", "vvfat", "-O", "raw", "fat:" + input.Replace('\\', '/'), inputDisk]);
         CollectionBuilder.Run(qemuImg, ["convert", "-f", "vvfat", "-O", "raw", "fat:floppy:" + floppy.Replace('\\', '/'), floppyDisk]);
         CollectionBuilder.Run(qemuImg, ["create", "-f", "qcow2", scratch, "64G"]);
-        CollectionBuilder.Run(oscdimg, ["-u2", "-udfver102", "-h", "-m", "-o", "-lHVGUI_PKGS", packages, packageIso]);
+        CollectionBuilder.Run(oscdimg, ["-u2", "-udfver102", "-h", "-m", "-o", "-lFREEWIN_PKGS", packages, packageIso]);
         progress?.Invoke("仮想マシンでWindowsイメージを作成中");
         var port = ReservePort();
         var start = new ProcessStartInfo(qemu) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
@@ -150,7 +150,7 @@ public static class ServicingVm
               <SetupUILanguage><UILanguage>ja-JP</UILanguage></SetupUILanguage><InputLocale>0411:00000411</InputLocale><SystemLocale>ja-JP</SystemLocale><UILanguage>ja-JP</UILanguage><UserLocale>ja-JP</UserLocale>
             </component>
             <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
-              <RunSynchronous><RunSynchronousCommand wcm:action="add"><Order>1</Order><Path>cmd.exe /c for %d in (C D E F G H I J K L M N O P Q R T U V W Y Z) do if exist %d:\HVGUI-SERVICING.TAG call %d:\apply.cmd</Path><Description>Apply Hyper-V GUI</Description></RunSynchronousCommand></RunSynchronous>
+              <RunSynchronous><RunSynchronousCommand wcm:action="add"><Order>1</Order><Path>cmd.exe /c for %d in (C D E F G H I J K L M N O P Q R T U V W Y Z) do if exist %d:\FREEWIN-SERVICING.TAG call %d:\apply.cmd</Path><Description>Apply Hyper-V GUI</Description></RunSynchronousCommand></RunSynchronous>
             </component>
           </settings>
         </unattend>

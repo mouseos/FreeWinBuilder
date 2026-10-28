@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 /// <summary>Extracts the captured Windows image from the builder's stopped virtual disk.</summary>
 public static class CaptureExtractor

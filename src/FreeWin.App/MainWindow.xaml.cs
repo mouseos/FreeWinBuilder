@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 using Windows.Graphics;
 using Windows.Storage.Pickers;
 
-namespace HyperVGui.App;
+namespace FreeWin.App;
 
 public sealed partial class MainWindow : Window
 {
@@ -20,7 +20,7 @@ public sealed partial class MainWindow : Window
     private string? jobPath;
     private int currentStep;
     private bool changingStep;
-    private readonly bool japanese = (Environment.GetEnvironmentVariable("HYPERVGUI_LANGUAGE") ?? CultureInfo.CurrentUICulture.Name).StartsWith("ja", StringComparison.OrdinalIgnoreCase);
+    private readonly bool japanese = (Environment.GetEnvironmentVariable("FREEWIN_LANGUAGE") ?? CultureInfo.CurrentUICulture.Name).StartsWith("ja", StringComparison.OrdinalIgnoreCase);
     private string T(string ja, string en) => japanese ? ja : en;
 
     public MainWindow()
@@ -99,7 +99,7 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            var worker = Path.Combine(AppContext.BaseDirectory, "worker", "HyperVGui.Worker.exe");
+            var worker = Path.Combine(AppContext.BaseDirectory, "worker", "FreeWin.Worker.exe");
             var qemu = Path.Combine(root, ".work", "qemu", "qemu-system-x86_64.exe");
             var qemuImg = Path.Combine(root, ".work", "qemu", "qemu-img.exe");
             var oscdimg = Path.Combine(root, ".work", "ms-tools", "oscdimg.exe");

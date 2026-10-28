@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 /// <summary>Decodes Windows component manifests with the dictionary from the matching WCP.</summary>
 public static class ManifestDecoder

@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 using System.Xml.Linq;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 public sealed record WimImage(int Index, string Edition, string Architecture, string Build, string Revision, string[] Languages, string InstallationType, string DefaultLanguage);
 

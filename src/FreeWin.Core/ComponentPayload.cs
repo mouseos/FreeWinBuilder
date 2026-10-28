@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 /// <summary>Reads component payloads stored as DCS LZMS blocks.</summary>
 public static class ComponentPayload

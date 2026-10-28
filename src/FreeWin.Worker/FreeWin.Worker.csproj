@@ -8,6 +8,6 @@
     <SelfContained>true</SelfContained>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\HyperVGui.Core\HyperVGui.Core.csproj" />
+    <ProjectReference Include="..\FreeWin.Core\FreeWin.Core.csproj" />
   </ItemGroup>
 </Project>

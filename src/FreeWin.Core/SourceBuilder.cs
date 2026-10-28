@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 public sealed record SourceResult(string InstallerMedia, string Collections, string HyperIso, string Language = "ja-JP");
 

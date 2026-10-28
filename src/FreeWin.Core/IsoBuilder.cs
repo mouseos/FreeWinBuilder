@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 /// <summary>Creates BIOS and UEFI bootable installation media.</summary>
 public static class IsoBuilder
@@ -26,7 +26,7 @@ public static class IsoBuilder
         var bios = Path.GetFullPath(Path.Combine(stage, "boot", "etfsboot.com"));
         var uefi = Path.GetFullPath(Path.Combine(stage, "efi", "microsoft", "boot", "efisys.bin"));
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
-        CollectionBuilder.Run(oscdimg, ["-m", "-o", "-u2", "-udfver102", "-lHVGUI2019",
+        CollectionBuilder.Run(oscdimg, ["-m", "-o", "-u2", "-udfver102", "-lFREEWIN2019",
             $"-bootdata:2#p0,e,b{bios}#pEF,e,b{uefi}", Path.GetFullPath(stage), Path.GetFullPath(output)]);
         if (!File.Exists(output)) throw new IOException("ISO creation did not produce an output file.");
     }

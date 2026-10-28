@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 /// <summary>Reconstructs pinned servicing collections from the user-supplied images.</summary>
 public static class CollectionBuilder

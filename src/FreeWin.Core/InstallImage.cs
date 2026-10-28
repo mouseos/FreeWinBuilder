@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
 
-namespace HyperVGui.Core;
+namespace FreeWin.Core;
 
 /// <summary>Restores the installer edition flag on a copy of a captured WIM.</summary>
 public static class InstallImage
@@ -22,7 +22,7 @@ public static class InstallImage
 
     private static T WithImage<T>(string path, bool write, Func<IntPtr, T> operation)
     {
-        var temporary = Path.Combine(Path.GetTempPath(), "hvgui-wim-" + Guid.NewGuid().ToString("N"));
+        var temporary = Path.Combine(Path.GetTempPath(), "freewin-wim-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(temporary);
         var wim = IntPtr.Zero;
         var image = IntPtr.Zero;
