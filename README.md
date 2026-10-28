@@ -1,4 +1,4 @@
-# FreeWin Builder
+# FreeWinBuilder
 
 [日本語](#日本語)
 

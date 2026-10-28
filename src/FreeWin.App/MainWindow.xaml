@@ -2,13 +2,13 @@
     x:Class="FreeWin.App.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="FreeWin Builder">
+    Title="FreeWinBuilder">
     <Window.SystemBackdrop><MicaBackdrop Kind="BaseAlt"/></Window.SystemBackdrop>
     <Grid x:Name="Root">
         <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <StackPanel Orientation="Horizontal" Spacing="12" Padding="24,0" VerticalAlignment="Center">
             <FontIcon Glyph="&#xE7F8;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-            <TextBlock Text="FreeWin Builder" FontWeight="SemiBold"/>
+            <TextBlock Text="FreeWinBuilder" FontWeight="SemiBold"/>
         </StackPanel>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
