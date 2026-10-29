@@ -4,11 +4,17 @@
 #include <objbase.h>
 #include <docobj.h>
 #include <shlguid.h>
+#include <mmsystem.h>
 #include <stdio.h>
 #include <wchar.h>
 
 static HANDLE logfile=INVALID_HANDLE_VALUE;
 typedef struct {HMODULE module;IOleCommandTarget *object;BOOL com;} TRAY;
+/* stobject stops adding every tray icon when its volume icon cannot find a mixer.
+ * Without audio, start it with volume deferred and enable volume once audio appears. */
+typedef struct {BOOL held,existed;DWORD original;} VOLUME_HOLD;
+#define SYSTRAY_KEY L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\SysTray"
+#define SYSTRAY_VOLUME 0x00000004
 DWORD InitializeVolumeConfig(HKEY user);
 DWORD InitializeShellIcons(const WCHAR *folder);
 HRESULT InitializeUserFilesShortcut(const WCHAR *folder);
@@ -17,6 +23,27 @@ DWORD InitializeClassicTheme(HKEY user);
 static void log_status(const char *phase,DWORD code){
  char line[160];int n=snprintf(line,sizeof(line),"%s: %lu\r\n",phase,code);DWORD written;
  if(logfile!=INVALID_HANDLE_VALUE)WriteFile(logfile,line,(DWORD)n,&written,NULL);
+}
+static void hold_volume(VOLUME_HOLD *hold){
+ HKEY key=NULL;if(RegCreateKeyExW(HKEY_CURRENT_USER,SYSTRAY_KEY,0,NULL,0,KEY_QUERY_VALUE|KEY_SET_VALUE,NULL,&key,NULL))return;
+ DWORD value=0x7,size=sizeof(value),type=0;
+ hold->existed=RegQueryValueExW(key,L"Services",NULL,&type,(BYTE*)&value,&size)==ERROR_SUCCESS&&type==REG_DWORD;
+ if(!hold->existed)value=0x7;
+ if(value&SYSTRAY_VOLUME){
+  DWORD reduced=value&~SYSTRAY_VOLUME;hold->original=value;
+  hold->held=RegSetValueExW(key,L"Services",0,REG_DWORD,(const BYTE*)&reduced,sizeof(reduced))==ERROR_SUCCESS;
+ }
+ RegCloseKey(key);
+}
+static void release_volume(VOLUME_HOLD *hold){
+ HKEY key=NULL;if(!RegOpenKeyExW(HKEY_CURRENT_USER,SYSTRAY_KEY,0,KEY_SET_VALUE,&key)){
+  if(hold->existed)RegSetValueExW(key,L"Services",0,REG_DWORD,(const BYTE*)&hold->original,sizeof(hold->original));
+  else RegDeleteValueW(key,L"Services");
+  RegCloseKey(key);
+ }
+ hold->held=FALSE;
+ HWND tray=FindWindowW(L"SystemTray_Main",NULL);
+ log_status("Deferred volume icon enabled",tray&&PostMessageW(tray,WM_USER+220,SYSTRAY_VOLUME,1)?0:GetLastError());
 }
 static void start_tray(const WCHAR *folder,TRAY *tray){
  HRESULT hr=CoInitializeEx(NULL,COINIT_APARTMENTTHREADED);
@@ -74,14 +101,22 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,PWSTR command,int show
  log_status("User files shortcut initialization",(DWORD)InitializeUserFilesShortcut(folder));
  if(CreateProcessW(path,line,NULL,NULL,FALSE,0,NULL,folder,&si,&pi)){
   log_status("Explorer started",pi.dwProcessId);
-  DWORD started=GetTickCount(),lastVolume=started;BOOL trayStarted=FALSE;TRAY tray={0};
+  DWORD started=GetTickCount(),lastVolume=started;BOOL trayStarted=FALSE;TRAY tray={0};VOLUME_HOLD hold={0};
   for(;;){
    DWORD wait=MsgWaitForMultipleObjects(1,&pi.hProcess,FALSE,250,QS_ALLINPUT);
    if(wait==WAIT_OBJECT_0)break;
    if(wait==WAIT_FAILED){log_status("Shell wait error",GetLastError());break;}
    MSG message;while(PeekMessageW(&message,NULL,0,0,PM_REMOVE)){TranslateMessage(&message);DispatchMessageW(&message);}
-   if(!trayStarted){HWND window=FindWindowW(L"Shell_TrayWnd",NULL);DWORD owner=0;if(window)GetWindowThreadProcessId(window,&owner);if(owner==pi.dwProcessId){trayStarted=TRUE;start_tray(folder,&tray);}}
-   DWORD now=GetTickCount();if(now-started<60000&&now-lastVolume>=2000){lastVolume=now;DWORD count=InitializeVolumeConfig(HKEY_CURRENT_USER);if(count)log_status("Late audio devices initialized",count);}
+   DWORD now=GetTickCount();
+   if(!trayStarted){HWND window=FindWindowW(L"Shell_TrayWnd",NULL);DWORD owner=0;if(window)GetWindowThreadProcessId(window,&owner);
+    // Give the audio driver a short head start before the volume icon looks for a mixer.
+    if(owner==pi.dwProcessId&&(mixerGetNumDevs()||now-started>=10000)){
+     UINT devices=mixerGetNumDevs();log_status("Audio mixers at tray start",devices);
+     if(!devices)hold_volume(&hold);
+     trayStarted=TRUE;start_tray(folder,&tray);
+    }}
+   if(hold.held&&mixerGetNumDevs())release_volume(&hold);
+   if(now-started<60000&&now-lastVolume>=2000){lastVolume=now;DWORD count=InitializeVolumeConfig(HKEY_CURRENT_USER);if(count)log_status("Late audio devices initialized",count);}
   }
   stop_tray(&tray);
   GetExitCodeProcess(pi.hProcess,&result);log_status("Explorer exit",result);CloseHandle(pi.hThread);CloseHandle(pi.hProcess);

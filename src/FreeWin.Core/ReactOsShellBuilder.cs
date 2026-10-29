@@ -17,11 +17,15 @@ public static class ReactOsShellBuilder
         "system32/intl.cpl", "system32/access.cpl", "system32/powercfg.cpl", "system32/usrmgr.cpl",
         "system32/timedate.cpl", "system32/w32time.dll", "system32/desk.cpl", "system32/uxtheme.dll"
     ];
+    // Newer forks split the shell further (LiberNT moves browseui into explorerframe).
+    private static readonly string[] Optional =
+        ["system32/explorerframe.dll", "system32/windows.storage.dll", "system32/user32_vista.dll"];
     private static readonly Dictionary<string, string> Aliases = new()
     {
         ["shell32.dll"] = "roshell.dll", ["shlwapi.dll"] = "roshapi.dll",
         ["browseui.dll"] = "robrowse.dll", ["shdocvw.dll"] = "rodocvw.dll",
-        ["comctl32.dll"] = "roctrl32.dll", ["psapi.dll"] = "rosps.dll"
+        ["comctl32.dll"] = "roctrl32.dll", ["psapi.dll"] = "rosps.dll",
+        ["explorerframe.dll"] = "roexplorframe.dll", ["windows.storage.dll"] = "ros_win_storage.dll"
     };
 
     public static void Prepare(string reactOsRoot, string windowsRoot, string output)
@@ -54,6 +58,17 @@ public static class ReactOsShellBuilder
         using var timerBuffer = new MemoryStream(); timers.CopyTo(timerBuffer);
         var timerBytes = timerBuffer.ToArray(); RequireX64(timerBytes);
         var inputs = ReadSources(reactOsRoot);
+        // Forks with a split windows.storage locate it by module name; give their
+        // shell32 a kernel32 view where that name means the private copy.
+        var splitStorage = inputs.ContainsKey("windows.storage.dll");
+        byte[]? kernelBytes = null;
+        if (splitStorage)
+        {
+            using var kernel = typeof(ReactOsShellBuilder).Assembly.GetManifestResourceStream("FreeWin.Core.Resources.roskrn32.dll")
+                ?? throw new InvalidOperationException("Build the private kernel32 adapter before publishing.");
+            using var kernelBuffer = new MemoryStream(); kernel.CopyTo(kernelBuffer);
+            kernelBytes = kernelBuffer.ToArray(); RequireX64(kernelBytes);
+        }
         var controls = Path.Combine(windowsRoot, "System32", "comctl32.dll");
         if (FileVersionInfo.GetVersionInfo(controls).FileMajorPart != 5)
             throw new InvalidDataException("The shell requires Validation OS Common Controls v5.");
@@ -65,10 +80,10 @@ public static class ReactOsShellBuilder
             if (name.EndsWith(".cpl", StringComparison.OrdinalIgnoreCase))
             {
                 if (name == "mmsys.cpl") Replace(bytes, "winmm.dll", "rosmx.dll", Encoding.ASCII);
-                if (name == "timedate.cpl") RedirectImport(bytes, "kernel32_vista.dll", "kernel32.dll");
+                if (name == "timedate.cpl") RedirectImport(bytes, "kernel32_vista.dll", "kernel32.dll", optional: true);
                 if (name == "desk.cpl")
                 {
-                    RedirectImport(bytes, "advapi32_vista.dll", "advapi32.dll");
+                    RedirectImport(bytes, "advapi32_vista.dll", "advapi32.dll", optional: true);
                     RedirectImport(bytes, "uxtheme.dll", "rotheme.dll");
                 }
                 File.WriteAllBytes(Path.Combine(output, name), bytes);
@@ -136,9 +151,16 @@ public static class ReactOsShellBuilder
                     Replace(bytes, original, Aliases[original], Encoding.Unicode);
                 Replace(bytes, "user32.dll", "rosusr.dll", Encoding.ASCII);
                 Replace(bytes, "USER32.dll", "rosusr.dll", Encoding.ASCII);
+                // Some forks draw the volume flyout in Explorer with the legacy mixer API.
+                RedirectImport(bytes, "winmm.dll", "rosmx.dll", optional: true);
             }
             if (name == "shell32.dll")
+            {
                 Replace(bytes, "shell32.dll", "roshell.dll", Encoding.Unicode);
+                if (splitStorage) RedirectImport(bytes, "kernel32.dll", "roskrn32.dll");
+            }
+            if (name == "shdocvw.dll" && inputs.ContainsKey("explorerframe.dll"))
+                Replace(bytes, "explorerframe.dll", Aliases["explorerframe.dll"], Encoding.Unicode);
             File.WriteAllBytes(Path.Combine(output, Aliases.GetValueOrDefault(name, name)), bytes);
         }
         File.WriteAllBytes(Path.Combine(output, "roctrl32.dll"), controlBytes);
@@ -158,9 +180,11 @@ public static class ReactOsShellBuilder
         File.WriteAllBytes(Path.Combine(output, "rosmx.dll"), mixerBytes);
         File.WriteAllBytes(Path.Combine(output, "rosusr.dll"), uiBytes);
         File.WriteAllBytes(Path.Combine(output, "rostmr.dll"), timerBytes);
+        if (kernelBytes is not null) File.WriteAllBytes(Path.Combine(output, "roskrn32.dll"), kernelBytes);
     }
 
     internal static IEnumerable<string> RequiredFiles => Sources.Append("system32/taskmgr.exe");
+    internal static IEnumerable<string> OptionalFiles => Optional;
 
     public static void ValidateSource(string reactOsRoot) => _ = ReadSources(reactOsRoot);
 
@@ -171,6 +195,14 @@ public static class ReactOsShellBuilder
         {
             var path = Path.Combine(reactOsRoot, relative);
             if (!File.Exists(path)) throw new FileNotFoundException("The ReactOS ISO does not contain a required file: " + relative, path);
+            var bytes = File.ReadAllBytes(path);
+            RequireX64(bytes);
+            inputs.Add(Path.GetFileName(relative), bytes);
+        }
+        foreach (var relative in Optional)
+        {
+            var path = Path.Combine(reactOsRoot, relative);
+            if (!File.Exists(path)) continue;
             var bytes = File.ReadAllBytes(path);
             RequireX64(bytes);
             inputs.Add(Path.GetFileName(relative), bytes);
@@ -186,7 +218,7 @@ public static class ReactOsShellBuilder
             throw new InvalidDataException("The shell requires x64 PE files.");
     }
 
-    private static void RedirectImport(byte[] bytes, string original, string replacement)
+    private static void RedirectImport(byte[] bytes, string original, string replacement, bool optional = false)
     {
         using var stream = new MemoryStream(bytes, false);
         using var pe = new PEReader(stream);
@@ -214,6 +246,7 @@ public static class ReactOsShellBuilder
             if (after.Length > end - at) throw new InvalidDataException("Import alias would change the PE layout.");
             bytes.AsSpan(at, end - at).Clear(); after.CopyTo(bytes, at); changed++;
         }
+        if (changed == 0 && optional) return;
         if (changed != 1) throw new InvalidDataException("Unexpected import descriptor count for " + original);
     }
 

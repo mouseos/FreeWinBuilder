@@ -2,7 +2,7 @@
 
 English | [日本語](README.ja.md)
 
-Create a bootable Microsoft Validation OS ISO with the ReactOS desktop, Start menu, taskbar and settings tools. Windows keeps its own kernel and core DLLs. The source ISOs are unchanged.
+Create a bootable Microsoft Validation OS ISO with the desktop, Start menu, taskbar and settings tools of ReactOS or its fork LiberNT. Windows keeps its own kernel and core DLLs. The source ISOs are unchanged.
 
 ## Requirements
 
@@ -10,7 +10,9 @@ Create a bootable Microsoft Validation OS ISO with the ReactOS desktop, Start me
 - [7-Zip](https://www.7-zip.org/) in its default installation folder.
 - [Windows ADK Deployment Tools and the Windows PE add-on](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install), in their default locations.
 - A [Microsoft Validation OS x64 ISO](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/validation-os-overview). Tested build: 26100.9549.
-- A ReactOS x64 Boot CD from the [builds page](https://reactos.org/getbuilds/). Tested build: 0.4.17-dev-1268-gbba112f, x64 MSVC Debug.
+- One of these x64 boot CDs:
+  - ReactOS from the [builds page](https://reactos.org/getbuilds/). Tested build: 0.4.17-dev-1268-gbba112f, x64 MSVC Debug.
+  - LiberNT from its [releases](https://github.com/LiberNT/LiberNT/releases) (`bootcd-iso-…-amd64-….zip`, extract `bootcd.iso`). Tested build: nt10.0-043-2555, Clang Debug.
 
 Image creation stops if either ISO lacks a required component.
 

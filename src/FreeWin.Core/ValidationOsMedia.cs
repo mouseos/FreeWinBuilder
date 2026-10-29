@@ -105,6 +105,12 @@ public static class ValidationOsMedia
             using (var key = Registry.LocalMachine.CreateSubKey(soft + @"\Microsoft\Windows\CurrentVersion\Control Panel\Cpls"))
                 foreach (var file in Directory.GetFiles(Path.Combine(mount, "RosShell"), "*.cpl"))
                     key.SetValue("FreeWin." + Path.GetFileNameWithoutExtension(file), @"X:\RosShell\" + Path.GetFileName(file));
+            // VOS lists desk/sysdm/mmsys under "don't load". Shells that honour it
+            // would hide the private applets registered above, so unlist only those.
+            using (var key = Registry.LocalMachine.OpenSubKey(soft + @"\Microsoft\Windows\CurrentVersion\Control Panel\don't load", true))
+                if (key is not null)
+                    foreach (var file in Directory.GetFiles(Path.Combine(mount, "RosShell"), "*.cpl"))
+                        key.DeleteValue(Path.GetFileName(file), false);
             // These official namespace entries point at absent System32\rundll32.exe.
             // Route them to the private settings implementations, keeping native MMC entries.
             using var restore = new RegistryRestoreScope();
@@ -183,30 +189,32 @@ public static class ValidationOsMedia
 
     private static void CreateShortcuts(string mount)
     {
-        var programs = Path.Combine(mount, "ProgramData", "Microsoft", "Windows", "Start Menu", "Programs", "FreeWin");
-        Directory.CreateDirectory(programs);
+        // Use the standard Windows/LiberNT Start menu layout and keep every
+        // official Validation OS shortcut (Administrative Tools, System Tools).
+        var programs = Path.Combine(mount, "ProgramData", "Microsoft", "Windows", "Start Menu", "Programs");
         dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell", true)!)!;
         try
         {
-            var entries = new List<(string Name, string Target, string Arguments)>
+            var entries = new List<(string Folder, string Name, string Target, string Arguments)>
             {
-                ("Task Manager", @"X:\RosShell\taskmgr.exe", ""), ("Volume Control", @"X:\RosShell\sndvol32.exe", ""),
-                ("ReactOS Device Manager", @"X:\RosShell\devmgmt.exe", ""), ("Control Panel", @"X:\RosShell\control.exe", ""),
-                ("Notepad", @"X:\Windows\System32\notepad.exe", ""), ("Command Prompt", @"X:\Windows\System32\cmd.exe", "")
+                ("Accessories", "Notepad", @"X:\Windows\System32\notepad.exe", ""),
+                ("Accessories", "Command Prompt", @"X:\Windows\System32\cmd.exe", ""),
+                (@"Accessories\Entertainment", "Volume Control", @"X:\RosShell\sndvol32.exe", "")
             };
             foreach (var (name, file) in new[] {
-                ("Device Manager", "devmgmt.msc"), ("Computer Management", "compmgmt.msc"),
-                ("Disk Management", "diskmgmt.msc"), ("Services", "services.msc"),
-                ("Event Viewer", "eventvwr.msc"), ("Shared Folders", "fsmgmt.msc") })
+                ("Device Manager", "devmgmt.msc"), ("Disk Management", "diskmgmt.msc"),
+                ("Computer Management", "compmgmt.msc"), ("Services", "services.msc"), ("Event Viewer", "eventvwr.msc") })
                 if (File.Exists(Path.Combine(mount, "Windows", "System32", file)))
-                    entries.Add((name, @"X:\Windows\System32\mmc.exe", @"X:\Windows\System32\" + file));
-            foreach (var (name, file) in new[] {
-                ("Registry Editor", @"Windows\regedit.exe"), ("Registry Editor", @"Windows\System32\regedit.exe"),
-                ("Windows Task Manager", @"Windows\System32\taskmgr.exe"), ("Windows Sound", @"Windows\System32\SndVol.exe") })
-                if (File.Exists(Path.Combine(mount, file)) && !entries.Any(e => e.Name == name)) entries.Add((name, @"X:\" + file, ""));
-            foreach (var (name, target, arguments) in entries)
+                    entries.Add(("Administrative Tools", name, @"X:\Windows\System32\mmc.exe", @"X:\Windows\System32\" + file));
+            foreach (var (folder, name, target, arguments) in entries)
             {
-                dynamic link = shell.CreateShortcut(Path.Combine(programs, name + ".lnk"));
+                var directory = Path.Combine(programs, folder);
+                // Validation OS already ships some of these (for example Services as "services.lnk").
+                if (Directory.Exists(directory) && Directory.EnumerateFiles(directory, "*.lnk").Any(p =>
+                        Path.GetFileNameWithoutExtension(p).Equals(name, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+                Directory.CreateDirectory(directory);
+                dynamic link = shell.CreateShortcut(Path.Combine(directory, name + ".lnk"));
                 try { link.TargetPath = target; link.Arguments = arguments; link.WorkingDirectory = Path.GetDirectoryName(target)!; link.IconLocation = target + ",0"; link.Save(); }
                 finally { Marshal.FinalReleaseComObject(link); }
             }

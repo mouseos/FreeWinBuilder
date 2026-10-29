@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="obj\native\rostmr.dll" LogicalName="FreeWin.Core.Resources.rostmr.dll" Condition="Exists('obj\native\rostmr.dll')" />
+    <EmbeddedResource Include="obj\native\roskrn32.dll" LogicalName="FreeWin.Core.Resources.roskrn32.dll" Condition="Exists('obj\native\roskrn32.dll')" />
     <EmbeddedResource Include="obj\native\winbrand.dll" LogicalName="FreeWin.Core.Resources.winbrand.dll" Condition="Exists('obj\native\winbrand.dll')" />
     <EmbeddedResource Include="obj\native\rosusr.dll" LogicalName="FreeWin.Core.Resources.rosusr.dll" Condition="Exists('obj\native\rosusr.dll')" />
     <EmbeddedResource Include="obj\native\rosmx.dll" LogicalName="FreeWin.Core.Resources.rosmx.dll" Condition="Exists('obj\native\rosmx.dll')" />

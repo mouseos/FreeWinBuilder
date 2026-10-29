@@ -41,16 +41,23 @@ public static class ValidationOsBuilder
         Run(sevenZip, ["x", "-y", "-bd", "-o" + ros, Path.GetFullPath(reactOsIso), "amd64/reactos.cab"]);
         var rosRoot = Path.Combine(ros, "reactos");
         var cab = Path.Combine(ros, "amd64", "reactos.cab");
+        var wanted = ReactOsShellBuilder.RequiredFiles.Concat(ReactOsShellBuilder.OptionalFiles).ToArray();
         if (File.Exists(cab))
         {
             var flat = Path.Combine(ros, "files");
-            var required = ReactOsShellBuilder.RequiredFiles.Select(p => Path.GetFileName(p)!).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-            Run(sevenZip, ["e", "-y", "-bd", "-o" + flat, cab, .. required]);
+            var names = wanted.Select(p => Path.GetFileName(p)!).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            Run(sevenZip, ["e", "-y", "-bd", "-o" + flat, cab, .. names]);
             Directory.CreateDirectory(Path.Combine(rosRoot, "system32"));
-            foreach (var name in required)
+            foreach (var name in names.Where(n => File.Exists(Path.Combine(flat, n))))
                 File.Copy(Path.Combine(flat, name), Path.Combine(name == "explorer.exe" ? rosRoot : Path.Combine(rosRoot, "system32"), name));
         }
-        else Run(sevenZip, ["x", "-y", "-bd", "-o" + ros, Path.GetFullPath(reactOsIso), "reactos/*"]);
+        else
+        {
+            // ReactOS live media use reactos\; LiberNT boot CDs ship an expanded Windows\ tree.
+            Run(sevenZip, ["x", "-y", "-bd", "-o" + ros, Path.GetFullPath(reactOsIso),
+                .. wanted.SelectMany(p => new[] { "reactos/" + p, "Windows/" + p })]);
+            if (!Directory.Exists(rosRoot) && Directory.Exists(Path.Combine(ros, "Windows"))) rosRoot = Path.Combine(ros, "Windows");
+        }
         ReactOsShellBuilder.ValidateSource(rosRoot);
 
         var stage = Path.Combine(output, "packages");

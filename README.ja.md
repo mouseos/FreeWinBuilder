@@ -2,7 +2,7 @@
 
 [English](README.md) | 日本語
 
-Microsoft Validation OSにReactOSのデスクトップ、スタートメニュー、タスクバー、設定ツールを組み込んだ起動ISOを作成します。Windowsのカーネルと中核DLLはそのまま使い、入力ISOは変更しません。
+Microsoft Validation OSに、ReactOSまたはそのフォークのLiberNTのデスクトップ、スタートメニュー、タスクバー、設定ツールを組み込んだ起動ISOを作成します。Windowsのカーネルと中核DLLはそのまま使い、入力ISOは変更しません。
 
 ## 必要なもの
 
@@ -10,7 +10,9 @@ Microsoft Validation OSにReactOSのデスクトップ、スタートメニュ�
 - 既定の場所にインストールした[7-Zip](https://www.7-zip.org/)。
 - 既定の場所にインストールした[Windows ADKのDeployment ToolsとWinPEアドオン](https://learn.microsoft.com/ja-jp/windows-hardware/get-started/adk-install)。
 - [Microsoft Validation OS x64 ISO](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/validation-os-overview)。動作確認済みビルド: 26100.9549。
-- [ビルド配布ページ](https://reactos.org/getbuilds/)のReactOS x64 Boot CD。動作確認済みビルド: 0.4.17-dev-1268-gbba112f（x64 MSVC Debug）。
+- 次のいずれかのx64ブートCD。
+  - [ビルド配布ページ](https://reactos.org/getbuilds/)のReactOS。動作確認済みビルド: 0.4.17-dev-1268-gbba112f（x64 MSVC Debug）。
+  - [リリースページ](https://github.com/LiberNT/LiberNT/releases)のLiberNT（`bootcd-iso-…-amd64-….zip` を展開して `bootcd.iso` を使用）。動作確認済みビルド: nt10.0-043-2555（Clang Debug）。
 
 どちらかのISOに必要な部品がない場合は作成を中止します。
 

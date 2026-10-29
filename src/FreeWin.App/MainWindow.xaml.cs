@@ -69,13 +69,13 @@ public sealed partial class MainWindow : Window
             ? T("Validation OSのReactOSデスクトップ付き起動ISOを作成します。", "Create a bootable Validation OS ISO with the ReactOS desktop.")
             : T("Hyper-V Server 2019 のGUI付きISOを作成します。", "Create a Hyper-V Server 2019 ISO with a desktop.");
         RequirementsDescription.Text = IsValidationOs
-            ? T("Validation OS x64 ISO、ReactOS x64 ISO、Windows ADKのDeployment ToolsとWinPEアドオン、7-Zipが必要です。", "You need a Validation OS x64 ISO, a ReactOS x64 ISO, Windows ADK Deployment Tools, the WinPE add-on, and 7-Zip.")
+            ? T("Validation OS x64 ISO、ReactOSまたはLiberNTのx64 ISO、Windows ADKのDeployment ToolsとWinPEアドオン、7-Zipが必要です。", "You need a Validation OS x64 ISO, a ReactOS or LiberNT x64 ISO, Windows ADK Deployment Tools, the WinPE add-on, and 7-Zip.")
             : T("Hyper-V Serverと同じ言語のWindows Server 2019 ISOを用意してください。", "Use Hyper-V Server and Windows Server 2019 ISOs in the same language.");
         SourceHint.Text = IsValidationOs
             ? T("Validation OSの公式機能を追加し、ReactOSのシェルを組み込みます。", "Add official Validation OS features and integrate the ReactOS shell.")
             : T("同じ言語のISOを2つ指定してください。", "Select two ISOs in the same language.");
         FirstIsoLabel.Text = IsValidationOs ? "Microsoft Validation OS x64" : T("Hyper-V Server 2019（推奨: 17763.737）", "Hyper-V Server 2019 (recommended: 17763.737)");
-        SecondIsoLabel.Text = IsValidationOs ? T("ReactOS x64（動作確認済み: 0.4.17-dev-1268-gbba112f）", "ReactOS x64 (tested: 0.4.17-dev-1268-gbba112f)") : T("Windows Server 2019 Desktop Experience（推奨: 17763.1）", "Windows Server 2019 Desktop Experience (recommended: 17763.1)");
+        SecondIsoLabel.Text = IsValidationOs ? T("ReactOSまたはLiberNT x64（動作確認済み: ReactOS 0.4.17-dev-1268-gbba112f、LiberNT nt10.0-043-2555）", "ReactOS or LiberNT x64 (tested: ReactOS 0.4.17-dev-1268-gbba112f, LiberNT nt10.0-043-2555)") : T("Windows Server 2019 Desktop Experience（推奨: 17763.1）", "Windows Server 2019 Desktop Experience (recommended: 17763.1)");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(HyperPath, FirstIsoLabel.Text);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(DonorPath, SecondIsoLabel.Text);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(FirstIsoBrowseButton,
