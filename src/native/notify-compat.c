@@ -89,5 +89,17 @@ LRESULT WINAPI FwbSendMessageW(HWND window,UINT message,WPARAM first,LPARAM seco
    second=MAKELPARAM(GetSystemMetrics(SM_CXSMICON)+2,GetSystemMetrics(SM_CYSMICON)+2);
   }
  }
+ // Common Controls v5 rejects TTTOOLINFOW sizes beyond the V2 layout (0x40 on x64),
+ // so Explorer's remove-all-tools loop would never end. The V3 tail is reserved.
+ UINT *size=NULL;
+ WCHAR targetClass[32]={0};
+ if(second&&message>=TTM_ADDTOOLW&&message<=TTM_GETCURRENTTOOLW&&
+    GetClassNameW(window,targetClass,32)&&!lstrcmpiW(targetClass,TOOLTIPS_CLASSW))
+  size=message==TTM_HITTESTW?&((TTHITTESTINFOW*)second)->ti.cbSize:&((TTTOOLINFOW*)second)->cbSize;
+ if(size&&*size>TTTOOLINFOW_V2_SIZE){
+  UINT original=*size;*size=TTTOOLINFOW_V2_SIZE;
+  LRESULT result=SendMessageW(window,message,first,second);
+  *size=original;return result;
+ }
  return SendMessageW(window,message,first,second);
 }

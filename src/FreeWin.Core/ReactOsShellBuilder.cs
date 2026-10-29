@@ -20,6 +20,10 @@ public static class ReactOsShellBuilder
     // Newer forks split the shell further (LiberNT moves browseui into explorerframe).
     private static readonly string[] Optional =
         ["system32/explorerframe.dll", "system32/windows.storage.dll", "system32/user32_vista.dll"];
+    // The fork's own visual style. Windows' theme service rejects this older format,
+    // so the shell renders it with the fork's private uxtheme engine instead.
+    internal const string ThemeFile = "Resources/Themes/Aero/aero.msstyles";
+    internal const string ThemeKey = "FreeWinTheme";
     private static readonly Dictionary<string, string> Aliases = new()
     {
         ["shell32.dll"] = "roshell.dll", ["shlwapi.dll"] = "roshapi.dll",
@@ -61,6 +65,16 @@ public static class ReactOsShellBuilder
         // Forks with a split windows.storage locate it by module name; give their
         // shell32 a kernel32 view where that name means the private copy.
         var splitStorage = inputs.ContainsKey("windows.storage.dll");
+        var themeSource = Path.Combine(reactOsRoot, ThemeFile);
+        var privateTheme = File.Exists(themeSource) && inputs.ContainsKey("uxtheme.dll");
+        byte[]? themeInitBytes = null;
+        if (privateTheme)
+        {
+            using var init = typeof(ReactOsShellBuilder).Assembly.GetManifestResourceStream("FreeWin.Core.Resources.rothemi.dll")
+                ?? throw new InvalidOperationException("Build the private theme initializer before publishing.");
+            using var initBuffer = new MemoryStream(); init.CopyTo(initBuffer);
+            themeInitBytes = initBuffer.ToArray(); RequireX64(themeInitBytes);
+        }
         byte[]? kernelBytes = null;
         if (splitStorage)
         {
@@ -94,6 +108,11 @@ public static class ReactOsShellBuilder
                 // VOS forwards the display applet's theme APIs to absent SHUNIMPL.
                 // Keep this compatibility engine private to the ReactOS applet.
                 RedirectImport(bytes, "user32.dll", "rostmr.dll");
+                // The engine carries inline win32k calls numbered for its own kernel.
+                // On Windows they would run unrelated routines, so they return 0 instead.
+                NeutralizeWin32kStubs(bytes);
+                // Keep its settings apart from the native theme service's ThemeManager key.
+                if (privateTheme) Replace(bytes, @"CurrentVersion\ThemeManager", @"CurrentVersion\" + ThemeKey, Encoding.Unicode);
                 File.WriteAllBytes(Path.Combine(output, "rotheme.dll"), bytes);
                 continue;
             }
@@ -153,7 +172,10 @@ public static class ReactOsShellBuilder
                 Replace(bytes, "USER32.dll", "rosusr.dll", Encoding.ASCII);
                 // Some forks draw the volume flyout in Explorer with the legacy mixer API.
                 RedirectImport(bytes, "winmm.dll", "rosmx.dll", optional: true);
+                if (privateTheme) RedirectImport(bytes, "uxtheme.dll", "rothemi.dll", optional: true);
             }
+            if (name == "explorerframe.dll" && privateTheme)
+                RedirectImport(bytes, "uxtheme.dll", "rothemi.dll", optional: true);
             if (name == "shell32.dll")
             {
                 Replace(bytes, "shell32.dll", "roshell.dll", Encoding.Unicode);
@@ -181,10 +203,31 @@ public static class ReactOsShellBuilder
         File.WriteAllBytes(Path.Combine(output, "rosusr.dll"), uiBytes);
         File.WriteAllBytes(Path.Combine(output, "rostmr.dll"), timerBytes);
         if (kernelBytes is not null) File.WriteAllBytes(Path.Combine(output, "roskrn32.dll"), kernelBytes);
+        if (themeInitBytes is not null)
+        {
+            File.WriteAllBytes(Path.Combine(output, "rothemi.dll"), themeInitBytes);
+            var themeTarget = Path.Combine(output, "Themes", "Aero", "aero.msstyles");
+            Directory.CreateDirectory(Path.GetDirectoryName(themeTarget)!);
+            File.Copy(themeSource, themeTarget);
+        }
     }
 
     internal static IEnumerable<string> RequiredFiles => Sources.Append("system32/taskmgr.exe");
-    internal static IEnumerable<string> OptionalFiles => Optional;
+    internal static IEnumerable<string> OptionalFiles => Optional.Append(ThemeFile);
+
+    private static void NeutralizeWin32kStubs(byte[] bytes)
+    {
+        // mov r10,rcx; mov eax,imm32; syscall; ret  ->  mov r10,rcx; xor eax,eax; nop*5; ret
+        for (var i = 0; i + 11 <= bytes.Length; i++)
+        {
+            if (bytes[i] != 0x4C || bytes[i + 1] != 0x8B || bytes[i + 2] != 0xD1 || bytes[i + 3] != 0xB8 ||
+                bytes[i + 8] != 0x0F || bytes[i + 9] != 0x05 || bytes[i + 10] != 0xC3) continue;
+            if (BitConverter.ToUInt32(bytes, i + 4) < 0x1000) continue; // keep ntoskrnl-numbered stubs untouched
+            bytes[i + 3] = 0x31; bytes[i + 4] = 0xC0;
+            for (var j = i + 5; j < i + 10; j++) bytes[j] = 0x90;
+            i += 10;
+        }
+    }
 
     public static void ValidateSource(string reactOsRoot) => _ = ReadSources(reactOsRoot);
 

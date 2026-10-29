@@ -156,6 +156,16 @@ public static class ValidationOsMedia
                 foreach (var classId in hidden) key.SetValue(classId, 1, RegistryValueKind.DWord);
             }
             using var panel = Registry.Users.CreateSubKey(explorer + @"\Desktop\NameSpace\{21EC2020-3AEA-1069-A2DD-08002B30309D}");
+            // Settings for the shell's private theme engine (same values the fork installs
+            // under ThemeManager). The native theme service keeps its own ThemeManager key.
+            if (File.Exists(Path.Combine(mount, "RosShell", "Themes", "Aero", "aero.msstyles")))
+            {
+                using var theme = Registry.Users.CreateSubKey(profile + @"\Software\Microsoft\Windows\CurrentVersion\" + ReactOsShellBuilder.ThemeKey);
+                theme.SetValue("ThemeActive", "1");
+                theme.SetValue("DllName", @"%SystemDrive%\RosShell\Themes\Aero\aero.msstyles", RegistryValueKind.ExpandString);
+                theme.SetValue("ColorName", "Normal Color");
+                theme.SetValue("SizeName", "Normal Size");
+            }
         });
         var system = "FWB_System_" + Guid.NewGuid().ToString("N");
         WithHive("HKLM", system, Path.Combine(windows, "System32", "config", "SYSTEM"), log, () =>
