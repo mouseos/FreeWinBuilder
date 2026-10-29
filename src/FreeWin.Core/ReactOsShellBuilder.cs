@@ -19,12 +19,12 @@ public static class ReactOsShellBuilder
     ];
     // Newer forks split the shell further (LiberNT moves browseui into explorerframe).
     private static readonly string[] Optional =
-        ["system32/explorerframe.dll", "system32/windows.storage.dll", "system32/user32_vista.dll"];
+        ["system32/explorerframe.dll", "system32/windows.storage.dll", "system32/user32_vista.dll", "system32/prnfldr.dll"];
     // The fork's own visual style. Windows' theme service rejects this older format,
     // so the shell renders it with the fork's private uxtheme engine instead.
     internal const string ThemeFile = "Resources/Themes/Aero/aero.msstyles";
     internal const string ThemeKey = "FreeWinTheme";
-    private static readonly Dictionary<string, string> Aliases = new()
+    internal static readonly Dictionary<string, string> Aliases = new()
     {
         ["shell32.dll"] = "roshell.dll", ["shlwapi.dll"] = "roshapi.dll",
         ["browseui.dll"] = "robrowse.dll", ["shdocvw.dll"] = "rodocvw.dll",
@@ -83,6 +83,27 @@ public static class ReactOsShellBuilder
             using var kernelBuffer = new MemoryStream(); kernel.CopyTo(kernelBuffer);
             kernelBytes = kernelBuffer.ToArray(); RequireX64(kernelBytes);
         }
+        // ReactOS shell32 parses "::{CLSID}\::{CLSID}" with RtlGUIDFromString, which in
+        // ReactOS reads only the leading GUID. Give it an ntdll view with that behaviour.
+        using var runtime = typeof(ReactOsShellBuilder).Assembly.GetManifestResourceStream("FreeWin.Core.Resources.rosnt.dll")
+            ?? throw new InvalidOperationException("Build the private ntdll adapter before publishing.");
+        using var runtimeBuffer = new MemoryStream(); runtime.CopyTo(runtimeBuffer);
+        var runtimeBytes = runtimeBuffer.ToArray(); RequireX64(runtimeBytes);
+        // Such forks register their in-box shell classes (ShellLink, folders) to their own
+        // DLLs. VOS registers those CLSIDs to its native shell, so the fork's activations
+        // go through roole.dll, which prefers the private shell DLLs' class objects.
+        byte[]? comBytes = null;
+        if (splitStorage)
+        {
+            using var com = typeof(ReactOsShellBuilder).Assembly.GetManifestResourceStream("FreeWin.Core.Resources.roole.dll")
+                ?? throw new InvalidOperationException("Build the private COM activation adapter before publishing.");
+            using var comBuffer = new MemoryStream(); com.CopyTo(comBuffer);
+            comBytes = comBuffer.ToArray(); RequireX64(comBytes);
+        }
+        void UsePrivateClasses(byte[] bytes)
+        {
+            if (comBytes is not null) RedirectImport(bytes, "ole32.dll", "roole.dll", optional: true);
+        }
         var controls = Path.Combine(windowsRoot, "System32", "comctl32.dll");
         if (FileVersionInfo.GetVersionInfo(controls).FileMajorPart != 5)
             throw new InvalidDataException("The shell requires Validation OS Common Controls v5.");
@@ -121,6 +142,7 @@ public static class ReactOsShellBuilder
                 // Native Shell_NotifyIcon marshals icons differently from ReactOS Explorer.
                 Replace(bytes, "shell32.dll", "roshell.dll", Encoding.ASCII);
                 Replace(bytes, "winmm.dll", "rosmx.dll", Encoding.ASCII);
+                UsePrivateClasses(bytes);
                 File.WriteAllBytes(Path.Combine(output, name), bytes);
                 continue;
             }
@@ -180,9 +202,15 @@ public static class ReactOsShellBuilder
             {
                 Replace(bytes, "shell32.dll", "roshell.dll", Encoding.Unicode);
                 if (splitStorage) RedirectImport(bytes, "kernel32.dll", "roskrn32.dll");
+                RedirectImport(bytes, "ntdll.dll", "rosnt.dll", optional: true);
+                // The fork's views draw into custom-draw cells that native Common Controls
+                // leave empty; the private user32 view supplies them (see notify-compat.c).
+                if (splitStorage) RedirectImport(bytes, "user32.dll", "rosusr.dll");
             }
             if (name == "shdocvw.dll" && inputs.ContainsKey("explorerframe.dll"))
                 Replace(bytes, "explorerframe.dll", Aliases["explorerframe.dll"], Encoding.Unicode);
+            if (name is "explorer.exe" or "shell32.dll" or "windows.storage.dll" or "explorerframe.dll" or "shdocvw.dll" or "prnfldr.dll")
+                UsePrivateClasses(bytes);
             File.WriteAllBytes(Path.Combine(output, Aliases.GetValueOrDefault(name, name)), bytes);
         }
         File.WriteAllBytes(Path.Combine(output, "roctrl32.dll"), controlBytes);
@@ -203,6 +231,8 @@ public static class ReactOsShellBuilder
         File.WriteAllBytes(Path.Combine(output, "rosusr.dll"), uiBytes);
         File.WriteAllBytes(Path.Combine(output, "rostmr.dll"), timerBytes);
         if (kernelBytes is not null) File.WriteAllBytes(Path.Combine(output, "roskrn32.dll"), kernelBytes);
+        if (comBytes is not null) File.WriteAllBytes(Path.Combine(output, "roole.dll"), comBytes);
+        File.WriteAllBytes(Path.Combine(output, "rosnt.dll"), runtimeBytes);
         if (themeInitBytes is not null)
         {
             File.WriteAllBytes(Path.Combine(output, "rothemi.dll"), themeInitBytes);

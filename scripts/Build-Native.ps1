@@ -23,5 +23,9 @@ if($LASTEXITCODE){throw 'Validation OS branding adapter compilation failed'}
 if($LASTEXITCODE){throw 'Private kernel32 adapter compilation failed'}
 & $compiler -O2 -shared -nostdlib '-Wl,--entry,0' (Join-Path $root 'src\native\rothemi.c') (Join-Path $root 'src\native\rothemi.def') -lkernel32 -o (Join-Path $out 'rothemi.dll')
 if($LASTEXITCODE){throw 'Private theme initializer compilation failed'}
+& $compiler -O2 -shared -nostdlib '-Wl,--entry,0' (Join-Path $root 'src\native\rosnt.c') (Join-Path $root 'src\native\rosnt.def') -lntdll -o (Join-Path $out 'rosnt.dll')
+if($LASTEXITCODE){throw 'Private ntdll adapter compilation failed'}
+& $compiler -O2 -shared -nostdlib '-Wl,--entry,0' (Join-Path $root 'src\native\roole.c') (Join-Path $root 'src\native\roole.def') -lole32 -luuid -lkernel32 -o (Join-Path $out 'roole.dll')
+if($LASTEXITCODE){throw 'Private COM activation adapter compilation failed'}
 & $compiler -O2 -municode -mwindows -static-libgcc (Join-Path $root 'src\native\shellhost.c') (Join-Path $root 'src\native\eventlog-config.c') (Join-Path $root 'src\native\classic-config.c') (Join-Path $root 'src\native\volume-config.c') (Join-Path $root 'src\native\shell-icons.c') -luser32 -lwinmm -ladvapi32 -lwevtapi -lshell32 -lole32 -luuid -o (Join-Path $out 'FreeWinShell.exe')
 if($LASTEXITCODE){throw 'Native shell launcher compilation failed'}

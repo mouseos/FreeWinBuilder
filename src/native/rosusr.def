@@ -11,7 +11,7 @@ EXPORTS
     ChildWindowFromPointEx=USER32.ChildWindowFromPointEx
     ClientToScreen=USER32.ClientToScreen
     CreatePopupMenu=USER32.CreatePopupMenu
-    CreateWindowExW=USER32.CreateWindowExW
+    CreateWindowExW=FwbCreateWindowExW
     DeferWindowPos=USER32.DeferWindowPos
     DefWindowProcW=USER32.DefWindowProcW
     DeleteMenu=USER32.DeleteMenu

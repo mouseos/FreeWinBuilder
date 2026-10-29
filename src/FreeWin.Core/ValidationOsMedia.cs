@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Principal;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32;
 
 namespace FreeWin.Core;
@@ -134,6 +135,52 @@ public static class ValidationOsMedia
             // registration, but avoid listing the same Windows Sound app twice.
             if (File.Exists(Path.Combine(windows, "System32", "mmsys.cpl")))
                 restore.DeleteLeaf(Registry.LocalMachine, soft + @"\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\{F2DDFC82-8F12-4CDD-B7DC-D4FE1425AA4D}");
+            // Shells with a split windows.storage honour the folder verbs' DelegateExecute,
+            // which VOS points at the native explorerframe. Give the verbs a command that
+            // opens the private Explorer; the shell then uses it instead of the delegate.
+            if (File.Exists(Path.Combine(mount, "RosShell", ReactOsShellBuilder.Aliases["windows.storage.dll"])))
+            {
+                foreach (var (verb, arguments) in new[] { ("open", "\"%1\""), ("explore", "/e,\"%1\""), ("opennewwindow", "/n,\"%1\"") })
+                {
+                    using var key = restore.Open(Registry.LocalMachine, soft + @"\Classes\Folder\shell\" + verb + @"\command");
+                    key.SetValue("", @"X:\RosShell\explorer.exe " + arguments, RegistryValueKind.String);
+                }
+                // Windows hides This PC namespace entries marked HiddenByDefault; the fork's
+                // shell reads only its HideMyComputerIcons list, so carry the same choice over.
+                var explorerKey = soft + @"\Microsoft\Windows\CurrentVersion\Explorer";
+                using var computer = Registry.LocalMachine.OpenSubKey(explorerKey + @"\MyComputer\NameSpace");
+                var hidden = computer?.GetSubKeyNames().Where(name =>
+                {
+                    using var entry = computer.OpenSubKey(name);
+                    return entry?.GetValue("HiddenByDefault") is int flag && flag != 0;
+                }).ToArray() ?? [];
+                if (hidden.Length > 0)
+                {
+                    using var hide = restore.Open(Registry.LocalMachine, explorerKey + @"\HideMyComputerIcons");
+                    foreach (var classId in hidden) hide.SetValue(classId, 1, RegistryValueKind.DWord);
+                }
+                // VOS has no Printers folder ("Devices and Printers"); the fork ships it
+                // as a separate shell extension. Register it only where VOS has none.
+                const string printers = "{2227A280-3AEA-1069-A2DE-08002B30309D}";
+                using var existing = Registry.LocalMachine.OpenSubKey(soft + @"\Classes\CLSID\" + printers);
+                if (existing is null && File.Exists(Path.Combine(mount, "RosShell", "prnfldr.dll")))
+                {
+                    using var folder = Registry.LocalMachine.CreateSubKey(soft + @"\Classes\CLSID\" + printers);
+                    folder.SetValue("", "Printers");
+                    folder.SetValue("LocalizedString", @"@%SystemDrive%\RosShell\prnfldr.dll,-8036", RegistryValueKind.ExpandString);
+                    using (var icon = folder.CreateSubKey("DefaultIcon")) icon.SetValue("", @"%SystemDrive%\RosShell\roshell.dll,-138", RegistryValueKind.ExpandString);
+                    using (var server = folder.CreateSubKey("InprocServer32"))
+                    {
+                        server.SetValue("", @"%SystemDrive%\RosShell\prnfldr.dll", RegistryValueKind.ExpandString);
+                        server.SetValue("ThreadingModel", "Apartment");
+                    }
+                    using (var shellFolder = folder.CreateSubKey("ShellFolder"))
+                    {
+                        shellFolder.SetValue("Attributes", 0x20000004, RegistryValueKind.DWord);
+                        shellFolder.SetValue("FolderValueFlags", 0, RegistryValueKind.DWord);
+                    }
+                }
+            }
         });
         WithHive("HKU", profile, Path.Combine(mount, "Users", "Default", "NTUSER.DAT"), log, () =>
         {
@@ -202,20 +249,17 @@ public static class ValidationOsMedia
         // Use the standard Windows/LiberNT Start menu layout and keep every
         // official Validation OS shortcut (Administrative Tools, System Tools).
         var programs = Path.Combine(mount, "ProgramData", "Microsoft", "Windows", "Start Menu", "Programs");
-        dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell", true)!)!;
-        try
-        {
             var entries = new List<(string Folder, string Name, string Target, string Arguments)>
             {
-                ("Accessories", "Notepad", @"X:\Windows\System32\notepad.exe", ""),
-                ("Accessories", "Command Prompt", @"X:\Windows\System32\cmd.exe", ""),
-                (@"Accessories\Entertainment", "Volume Control", @"X:\RosShell\sndvol32.exe", "")
+                ("Accessories", "Notepad", @"%SystemRoot%\System32\notepad.exe", ""),
+                ("Accessories", "Command Prompt", @"%SystemRoot%\System32\cmd.exe", ""),
+                (@"Accessories\Entertainment", "Volume Control", @"%SystemDrive%\RosShell\sndvol32.exe", "")
             };
             foreach (var (name, file) in new[] {
                 ("Device Manager", "devmgmt.msc"), ("Disk Management", "diskmgmt.msc"),
                 ("Computer Management", "compmgmt.msc"), ("Services", "services.msc"), ("Event Viewer", "eventvwr.msc") })
                 if (File.Exists(Path.Combine(mount, "Windows", "System32", file)))
-                    entries.Add(("Administrative Tools", name, @"X:\Windows\System32\mmc.exe", @"X:\Windows\System32\" + file));
+                    entries.Add(("Administrative Tools", name, @"%SystemRoot%\System32\mmc.exe", @"%SystemRoot%\System32\" + file));
             foreach (var (folder, name, target, arguments) in entries)
             {
                 var directory = Path.Combine(programs, folder);
@@ -224,12 +268,33 @@ public static class ValidationOsMedia
                         Path.GetFileNameWithoutExtension(p).Equals(name, StringComparison.OrdinalIgnoreCase)))
                     continue;
                 Directory.CreateDirectory(directory);
-                dynamic link = shell.CreateShortcut(Path.Combine(directory, name + ".lnk"));
-                try { link.TargetPath = target; link.Arguments = arguments; link.WorkingDirectory = Path.GetDirectoryName(target)!; link.IconLocation = target + ",0"; link.Save(); }
-                finally { Marshal.FinalReleaseComObject(link); }
+                WriteShortcut(Path.Combine(directory, name + ".lnk"), target, arguments);
             }
-        }
-        finally { Marshal.FinalReleaseComObject(shell); }
+    }
+
+    // Same form as the official Validation OS shortcuts: the target is an environment
+    // string with no item ID list. A list built on the host describes host items
+    // (there is no X: there), and ReactOS-based shells cannot decode its newer items.
+    private static void WriteShortcut(string file, string target, string arguments)
+    {
+        const uint hasWorkingDirectory = 0x10, hasArguments = 0x20, hasIconLocation = 0x40, isUnicode = 0x80, hasExpandString = 0x200;
+        var flags = hasWorkingDirectory | hasIconLocation | isUnicode | hasExpandString | (arguments.Length > 0 ? hasArguments : 0);
+        using var stream = new FileStream(file, FileMode.CreateNew, FileAccess.Write);
+        using var writer = new BinaryWriter(stream, Encoding.Unicode);
+        writer.Write(0x4C);
+        writer.Write(new Guid("00021401-0000-0000-C000-000000000046").ToByteArray());
+        writer.Write(flags);
+        writer.Write(new byte[4 + 8 * 3 + 4 + 4]); // attributes, times, size, icon index
+        writer.Write(1); // SW_SHOWNORMAL
+        writer.Write(new byte[2 + 2 + 4 + 4]); // hot key, reserved
+        void Text(string value) { writer.Write(checked((ushort)value.Length)); writer.Write(Encoding.Unicode.GetBytes(value)); }
+        Text(target[..target.LastIndexOf('\\')]);
+        if (arguments.Length > 0) Text(arguments);
+        Text(target);
+        var ansi = new byte[260]; var unicode = new byte[520];
+        Encoding.ASCII.GetBytes(target).CopyTo(ansi, 0); Encoding.Unicode.GetBytes(target).CopyTo(unicode, 0);
+        writer.Write(0x314); writer.Write(0xA0000001u); writer.Write(ansi); writer.Write(unicode);
+        writer.Write(0); // terminal block
     }
 
     internal static void WithHive(string root, string name, string file, Action<string>? log, Action action)

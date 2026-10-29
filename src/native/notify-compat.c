@@ -78,6 +78,48 @@ BOOL WINAPI FwbGetMessageW(LPMSG message,HWND window,UINT minimum,UINT maximum){
  install_notify_adapter();return GetMessageW(message,window,minimum,maximum);
 }
 
+// ReactOS Common Controls report each icon-view item's cell and state in NM_CUSTOMDRAW.
+// Native v5 reuses one structure without setting rc and reports every item as selected.
+// The fork's This PC tiles draw from both, so supply the cell (icon spacing, centred on
+// the icon) and the item's own selected/focused/hot state for its shell views.
+static LRESULT CALLBACK view_message(HWND window,UINT message,WPARAM first,LPARAM second,UINT_PTR id,DWORD_PTR context){
+ (void)context;
+ if(message==WM_NOTIFY&&second&&((NMHDR*)second)->code==NM_CUSTOMDRAW){
+  NMLVCUSTOMDRAW *draw=(NMLVCUSTOMDRAW*)second;HWND list=draw->nmcd.hdr.hwndFrom;WCHAR listClass[32]={0};
+  if(draw->nmcd.dwDrawStage==CDDS_ITEMPREPAINT&&
+     GetClassNameW(list,listClass,32)&&!lstrcmpW(listClass,WC_LISTVIEWW)&&
+     (GetWindowLongW(list,GWL_STYLE)&LVS_TYPEMASK)==LVS_ICON){
+   const WPARAM item=(WPARAM)draw->nmcd.dwItemSpec;RECT icon={LVIR_ICON};
+   if(SendMessageW(list,LVM_GETITEMRECT,item,(LPARAM)&icon)){
+    DWORD spacing=(DWORD)SendMessageW(list,LVM_GETITEMSPACING,FALSE,0);
+    draw->nmcd.rc.left=(icon.left+icon.right-(LONG)LOWORD(spacing))/2;draw->nmcd.rc.top=icon.top;
+    draw->nmcd.rc.right=draw->nmcd.rc.left+LOWORD(spacing);draw->nmcd.rc.bottom=icon.top+HIWORD(spacing);
+   }
+   UINT state=(UINT)SendMessageW(list,LVM_GETITEMSTATE,item,LVIS_SELECTED|LVIS_FOCUSED);
+   draw->nmcd.uItemState&=~(CDIS_SELECTED|CDIS_FOCUS|CDIS_HOT);
+   if(state&LVIS_SELECTED)draw->nmcd.uItemState|=CDIS_SELECTED;
+   if(state&LVIS_FOCUSED)draw->nmcd.uItemState|=CDIS_FOCUS;
+   if((WPARAM)SendMessageW(list,LVM_GETHOTITEM,0,0)==item)draw->nmcd.uItemState|=CDIS_HOT;
+  }
+ }
+ if(message==WM_NCDESTROY)remove_subclass(window,view_message,id);
+ return next_message(window,message,first,second);
+}
+
+HWND WINAPI FwbCreateWindowExW(DWORD exStyle,LPCWSTR className,LPCWSTR title,DWORD style,int x,int y,int width,int height,HWND parent,HMENU menu,HINSTANCE instance,LPVOID parameter){
+ HWND window=CreateWindowExW(exStyle,className,title,style,x,y,width,height,parent,menu,instance,parameter);
+ WCHAR created[32]={0},owner[32]={0};
+ if(window&&parent&&GetClassNameW(window,created,32)&&!lstrcmpW(created,WC_LISTVIEWW)&&
+    GetClassNameW(parent,owner,32)&&!lstrcmpW(owner,L"SHELLDLL_DefView")){
+  HMODULE controls=GetModuleHandleW(L"roctrl32.dll");
+  SET_SUBCLASS set=controls?(SET_SUBCLASS)GetProcAddress(controls,"SetWindowSubclass"):NULL;
+  next_message=controls?(DEFAULT_SUBCLASS)GetProcAddress(controls,"DefSubclassProc"):NULL;
+  remove_subclass=controls?(REMOVE_SUBCLASS)GetProcAddress(controls,"RemoveWindowSubclass"):NULL;
+  if(set&&next_message&&remove_subclass)set(parent,view_message,0x4657564c,0);
+ }
+ return window;
+}
+
 LRESULT WINAPI FwbSendMessageW(HWND window,UINT message,WPARAM first,LPARAM second){
  if(message==TB_SETBUTTONSIZE){
   WCHAR parentClass[64]={0},grandparentClass[64]={0};HWND parent=GetParent(window);
