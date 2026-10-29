@@ -28,19 +28,23 @@
                     <Grid>
                         <StackPanel x:Name="WelcomePanel" Spacing="20">
                             <TextBlock Text="はじめに" FontSize="36" FontWeight="Light"/>
-                            <TextBlock Text="Hyper-V Server 2019 のGUI付きISOを作成します。" FontSize="16" TextWrapping="Wrap"/>
+                            <ComboBox x:Name="TargetChoice" Header="対象OS" SelectedIndex="0" SelectionChanged="OnTargetChanged" MinWidth="300">
+                                <ComboBoxItem Content="Microsoft Validation OS"/>
+                                <ComboBoxItem Content="Hyper-V Server 2019"/>
+                            </ComboBox>
+                            <TextBlock x:Name="WelcomeDescription" Text="Validation OSのReactOSデスクトップ付き起動ISOを作成します。" FontSize="16" TextWrapping="Wrap"/>
                             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="24">
-                                <StackPanel Spacing="12"><FontIcon Glyph="&#xE7F8;" FontSize="32" HorizontalAlignment="Left" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/><TextBlock Text="必要なもの" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="Hyper-V Server と同じ言語の Windows Server 2019 ISOを選択し、保存先とオプションを確認します。" TextWrapping="Wrap"/></StackPanel>
+                                <StackPanel Spacing="12"><FontIcon Glyph="&#xE7F8;" FontSize="32" HorizontalAlignment="Left" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/><TextBlock Text="必要なもの" FontSize="18" FontWeight="SemiBold"/><TextBlock x:Name="RequirementsDescription" TextWrapping="Wrap"/></StackPanel>
                             </Border>
                             <TextBlock Text="元のISOは変更せず、新しいISOを保存します。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
                         </StackPanel>
                         <StackPanel x:Name="SourcePanel" Visibility="Collapsed" Spacing="18">
                             <TextBlock Text="入力ISO" FontSize="32" FontWeight="SemiBold"/>
-                            <TextBlock Text="同じ言語のISOを2つ指定してください。" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                            <TextBlock Text="Hyper-V Server 2019（推奨: 17763.737）"/>
-                            <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="HyperPath" PlaceholderText="ISOを選択" AutomationProperties.Name="Hyper-V Server ISO"/><Button Grid.Column="1" Content="参照…" Tag="hyper" Click="OnChooseIso" AutomationProperties.Name="Hyper-V Server ISOを選択"/></Grid>
-                            <TextBlock Text="Windows Server 2019 Desktop Experience（推奨: 17763.1）"/>
-                            <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="DonorPath" PlaceholderText="ISOを選択" AutomationProperties.Name="GUIのISO"/><Button Grid.Column="1" Content="参照…" Tag="donor" Click="OnChooseIso" AutomationProperties.Name="GUIのISOを選択"/></Grid>
+                            <TextBlock x:Name="SourceHint" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="FirstIsoLabel"/>
+                            <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="HyperPath" PlaceholderText="ISOを選択" AutomationProperties.Name="Hyper-V Server ISO"/><Button x:Name="FirstIsoBrowseButton" Grid.Column="1" Content="参照…" Tag="hyper" Click="OnChooseIso"/></Grid>
+                            <TextBlock x:Name="SecondIsoLabel" TextWrapping="Wrap"/>
+                            <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="DonorPath" PlaceholderText="ISOを選択" AutomationProperties.Name="GUIのISO"/><Button x:Name="SecondIsoBrowseButton" Grid.Column="1" Content="参照…" Tag="donor" Click="OnChooseIso"/></Grid>
                         </StackPanel>
                         <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Spacing="20">
                             <TextBlock Text="作成設定" FontSize="32" FontWeight="SemiBold"/>

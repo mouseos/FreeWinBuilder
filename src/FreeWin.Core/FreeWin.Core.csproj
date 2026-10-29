@@ -5,6 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="obj\native\rostmr.dll" LogicalName="FreeWin.Core.Resources.rostmr.dll" Condition="Exists('obj\native\rostmr.dll')" />
+    <EmbeddedResource Include="obj\native\winbrand.dll" LogicalName="FreeWin.Core.Resources.winbrand.dll" Condition="Exists('obj\native\winbrand.dll')" />
+    <EmbeddedResource Include="obj\native\rosusr.dll" LogicalName="FreeWin.Core.Resources.rosusr.dll" Condition="Exists('obj\native\rosusr.dll')" />
+    <EmbeddedResource Include="obj\native\rosmx.dll" LogicalName="FreeWin.Core.Resources.rosmx.dll" Condition="Exists('obj\native\rosmx.dll')" />
+    <EmbeddedResource Include="obj\native\rosps.dll" LogicalName="FreeWin.Core.Resources.rosps.dll" Condition="Exists('obj\native\rosps.dll')" />
+    <EmbeddedResource Include="obj\native\roscrt.dll" LogicalName="FreeWin.Core.Resources.roscrt.dll" Condition="Exists('obj\native\roscrt.dll')" />
+    <EmbeddedResource Include="obj\native\FreeWinShell.exe" LogicalName="FreeWin.Core.Resources.FreeWinShell.exe" Condition="Exists('obj\native\FreeWinShell.exe')" />
     <EmbeddedResource Include="Resources\ApplyImage.cmd" />
     <EmbeddedResource Include="Resources\server2019-ja-17763.737-gui.json" />
     <EmbeddedResource Include="Resources\server2019-reference-identities.json" />

@@ -1,0 +1,4 @@
+; Windows 7+ PSAPI entry point documented by Microsoft. No replacement implementation.
+LIBRARY rosps
+EXPORTS
+    GetModuleFileNameExW=KERNEL32.K32GetModuleFileNameExW

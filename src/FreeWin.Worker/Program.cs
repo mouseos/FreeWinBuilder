@@ -11,12 +11,25 @@ void Status(string phase, string message)
 {
     if (settings.English) message = EnglishMessage.Translate(message);
     log.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}");
+    // Preserve complete tool output without clearing the visible status on blank lines.
+    if (string.IsNullOrWhiteSpace(message)) return;
     var state = JsonSerializer.Serialize(new { phase, message });
     var path = Path.Combine(job, "build.json");
     File.WriteAllText(path + ".tmp", state); File.Move(path + ".tmp", path, true);
 }
 try
 {
+    if (settings.Target == "ValidationOS")
+    {
+        Status("preparing", "Validation OSとReactOSから起動ISOを作成中");
+        var validationOutput = ValidationOsBuilder.Build(settings.Validation, settings.ReactOs, settings.SevenZip,
+            settings.WinPeMedia, settings.BootFiles, settings.Oscdimg, Path.Combine(job, "validation-build"),
+            message => Status("servicing", message));
+        log.WriteLine(validationOutput);
+        Status("complete", "ISOの作成が完了しました。");
+        return 0;
+    }
+    if (settings.Target != "HyperV2019") throw new InvalidDataException("Unknown build target: " + settings.Target);
     var recipe = Path.Combine(job, "recipe.json");
     using (var resource = typeof(SourceBuilder).Assembly.GetManifestResourceStream("FreeWin.Core.Resources.server2019-ja-17763.737-gui.json") ?? throw new InvalidDataException("Missing component recipe."))
     using (var dest = File.Create(recipe)) resource.CopyTo(dest);
@@ -40,12 +53,14 @@ catch (Exception ex)
     return 1;
 }
 
-internal sealed record Settings(string Job, string Hyper, string Gui, string Qemu, string QemuImg, string Oscdimg, string SevenZip, bool Wireless, bool English = false);
+internal sealed record Settings(string Job, string Hyper, string Gui, string Qemu, string QemuImg, string Oscdimg, string SevenZip, bool Wireless, bool English = false,
+    string Target = "HyperV2019", string Validation = "", string ReactOs = "", string WinPeMedia = "", string BootFiles = "");
 
 internal static class EnglishMessage
 {
     private static readonly (string Japanese, string English)[] Phrases =
     [
+        ("Validation OSとReactOSから起動ISOを作成中", "Building a bootable ISO from Validation OS and ReactOS"),
         ("必要なコンポーネントが入力ISOに見つからないか、内容が一致しません: ", "A required component is missing or does not match: "),
         ("。別の同一言語・同一系列のISOをお試しください。", ". Try another ISO of the same language and release."),
         ("入力ISOから部品を準備中", "Preparing components from the source ISOs"),

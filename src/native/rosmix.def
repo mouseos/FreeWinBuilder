@@ -1,0 +1,20 @@
+LIBRARY rosmx
+EXPORTS
+    PlaySoundW=WINMM.PlaySoundW
+    mixerGetNumDevs=WINMM.mixerGetNumDevs
+    mixerGetID=WINMM.mixerGetID
+    waveOutMessage=WINMM.waveOutMessage
+    waveOutGetNumDevs=WINMM.waveOutGetNumDevs
+    waveOutGetDevCapsW=WINMM.waveOutGetDevCapsW
+    waveInGetNumDevs=WINMM.waveInGetNumDevs
+    waveInGetDevCapsW=WINMM.waveInGetDevCapsW
+    midiOutGetNumDevs=WINMM.midiOutGetNumDevs
+    midiOutGetDevCapsW=WINMM.midiOutGetDevCapsW
+    mciSendCommandW=WINMM.mciSendCommandW
+    mixerGetDevCapsW=FwbGetDevCaps
+    mixerGetLineControlsW=WINMM.mixerGetLineControlsW
+    mixerGetLineInfoW=WINMM.mixerGetLineInfoW
+    mixerOpen=FwbMixerOpen
+    mixerClose=FwbMixerClose
+    mixerGetControlDetailsW=FwbGetControlDetails
+    mixerSetControlDetails=FwbSetControlDetails
