@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Reflection.PortableExecutable;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace FreeWin.Core;
@@ -8,34 +7,16 @@ namespace FreeWin.Core;
 /// <summary>Prepares a private shell directory without replacing Windows system DLLs.</summary>
 public static class ReactOsShellBuilder
 {
-    // ReactOS 0.4.17-dev-1268-gbba112f, x64 MSVC. This CRT profile has been verified on Validation OS.
-    private static readonly Dictionary<string, string> Sources = new()
-    {
-        ["explorer.exe"] = "0CFAEA5B596D16DB1CE3F7660020D17034AD1B3663FD6F61BC3B9391992966A3",
-        ["system32/shell32.dll"] = "297F37CA8AACEA50EFD694C539340F0A6E46EC58B9586B343F3516FE2F060B4E",
-        ["system32/shlwapi.dll"] = "A0F17B58878E7EC955A5B6BAE161E63E44125D30689F36F41E2F60DA2CBDCD06",
-        ["system32/browseui.dll"] = "5A3D70701A5785DD4B11BAE7AC3A3A6E331FD524A7F39E85EB699CB494D0AA1D",
-        ["system32/shdocvw.dll"] = "FCED5C4246464E8CEBBF8B0D58EB18A7DE994711F8E933C911BE19B0AF58F196",
-        ["system32/devmgmt.exe"] = "C073D67E8819A682D0F65EA1E779535769C1EC4C982F2DC5AE7F67A899F9FBB1",
-        ["system32/devmgr.dll"] = "AB5017217084B604C366B19D993FCE052944441135BBE0F1D2A249184CC70E79",
-        ["system32/newdev.dll"] = "6B4E48B643CAF86DB9083A28C3473BC507D08B83622023D921ED0D2D6F048458",
-        ["system32/sndvol32.exe"] = "D1E8A8B1F5743314FD6877FB90362937587799D5542AABC6431AC2D4E12C2FF0",
-        ["system32/control.exe"] = "C607BAAF4D7B1C0416B56E4256E32184529E4344516CAB12BD32FDA8C8D9B6F0",
-        ["system32/rundll32.exe"] = "AC5381822C47E6EFCEC1656DA9EECF0F2970C4F1BD61893EDA003EC52F1CEA2B",
-        ["system32/stobject.dll"] = "F93C9705CE282049DA4DFACCB26D08066B62E14D8C1165EE9009F951A781534E",
-        ["system32/mmsys.cpl"] = "7C45DB0C1006180BA22524E04739752A308EE655D8FCD9FDD4EF40B26949420E",
-        ["system32/main.cpl"] = "CEC43A7039CB79005A9613655D9CAF515AE355B4302689FCE75E4089A868E714",
-        ["system32/sysdm.cpl"] = "8058BAC865422FDB231FF78736911671AE262CCEB6009EB9668D56C6DA76641A",
-        ["system32/appwiz.cpl"] = "8F454E119E79A5067C237386C213F8E2BD852DC7D3056C785C1CF6C7F07EE942",
-        ["system32/intl.cpl"] = "43749996D81CA1DC5E460152B51E532B02F51204C0418F1862DDF2DDF54DC8AD",
-        ["system32/access.cpl"] = "820F39A0B636FD9F8C8A8AE675FBB0B8B5F9254F2220D4883B50961F810BF56F",
-        ["system32/powercfg.cpl"] = "1E28CA9369B7D957C08EB796A6E4B8FEABC6C4FA56E03AE2449CD4FE1A293E5C",
-        ["system32/usrmgr.cpl"] = "F93BB3444916E9D8359AC0C455F4A822BA3AABE4001E31223175999606C544A8",
-        ["system32/timedate.cpl"] = "808A175FC493F1B9273466837E39797525D791C322EF63723B959C64145CFEA4",
-        ["system32/w32time.dll"] = "18990BC4CEFD55B505596B111439F4470C2CAE6AD7177703E82D592526635D02",
-        ["system32/desk.cpl"] = "411D1C539CABFF8555F96478A210718B063741009CAB4EE1E0FFD5FAE3310CFB",
-        ["system32/uxtheme.dll"] = "D4FE0051DED8A826F3ACD07C15392C1F3A978ED7C8089501F917964751660121"
-    };
+    // Files taken from the ReactOS x64 boot CD. Tested with 0.4.17-dev-1268-gbba112f (x64 MSVC Debug).
+    private static readonly string[] Sources =
+    [
+        "explorer.exe", "system32/shell32.dll", "system32/shlwapi.dll", "system32/browseui.dll",
+        "system32/shdocvw.dll", "system32/devmgmt.exe", "system32/devmgr.dll", "system32/newdev.dll",
+        "system32/sndvol32.exe", "system32/control.exe", "system32/rundll32.exe", "system32/stobject.dll",
+        "system32/mmsys.cpl", "system32/main.cpl", "system32/sysdm.cpl", "system32/appwiz.cpl",
+        "system32/intl.cpl", "system32/access.cpl", "system32/powercfg.cpl", "system32/usrmgr.cpl",
+        "system32/timedate.cpl", "system32/w32time.dll", "system32/desk.cpl", "system32/uxtheme.dll"
+    ];
     private static readonly Dictionary<string, string> Aliases = new()
     {
         ["shell32.dll"] = "roshell.dll", ["shlwapi.dll"] = "roshapi.dll",
@@ -179,19 +160,18 @@ public static class ReactOsShellBuilder
         File.WriteAllBytes(Path.Combine(output, "rostmr.dll"), timerBytes);
     }
 
-    internal static IEnumerable<string> RequiredFiles => Sources.Keys.Append("system32/taskmgr.exe");
+    internal static IEnumerable<string> RequiredFiles => Sources.Append("system32/taskmgr.exe");
 
     public static void ValidateSource(string reactOsRoot) => _ = ReadSources(reactOsRoot);
 
     private static Dictionary<string, byte[]> ReadSources(string reactOsRoot)
     {
         var inputs = new Dictionary<string, byte[]>();
-        foreach (var (relative, expected) in Sources)
+        foreach (var relative in Sources)
         {
             var path = Path.Combine(reactOsRoot, relative);
+            if (!File.Exists(path)) throw new FileNotFoundException("The ReactOS ISO does not contain a required file: " + relative, path);
             var bytes = File.ReadAllBytes(path);
-            if (Convert.ToHexString(SHA256.HashData(bytes)) != expected)
-                throw new InvalidDataException($"Unsupported ReactOS shell profile: {relative}. Expected x64 bba112f.");
             RequireX64(bytes);
             inputs.Add(Path.GetFileName(relative), bytes);
         }
