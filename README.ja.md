@@ -25,6 +25,8 @@ Microsoft Validation OSに、ReactOSまたはそのフォークのLiberNTのデ�
 
 RAMからデスクトップが起動します。再起動後も残したいファイルは、別の書き込み可能なドライブへ保存してください。
 
+Validation OSのイメージは英語のみで、IME（日本語入力など）は動きません。Validation OSには英語以外の表示言語もIMEのパッケージもないためです。これはValidation OS向けだけの制限で、Hyper-V Serverは元のISOの言語のまま使えます。
+
 画面はWindowsが日本語なら日本語、それ以外は英語です。変更したい場合は、起動前に環境変数 `FREEWIN_LANGUAGE` を `ja` または `en` に設定してください。
 
 ## Hyper-V Server 2019

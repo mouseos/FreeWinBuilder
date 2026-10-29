@@ -25,6 +25,8 @@ Image creation stops if either ISO lacks a required component.
 
 Validation OS starts directly into the desktop from RAM. Save files to a separate writable drive to keep them after a reboot.
 
+The Validation OS image is English only, and no input method (IME) works there. Validation OS provides no display language other than English and no IME package. This applies only to the Validation OS target; Hyper-V Server builds keep the language of their ISOs.
+
 The app uses Japanese when Windows uses Japanese and English otherwise. To override it, set `FREEWIN_LANGUAGE` to `ja` or `en` before launching.
 
 ## Hyper-V Server 2019
