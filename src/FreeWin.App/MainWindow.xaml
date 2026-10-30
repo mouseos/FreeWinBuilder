@@ -31,6 +31,7 @@
                             <ComboBox x:Name="TargetChoice" Header="対象OS" SelectedIndex="0" SelectionChanged="OnTargetChanged" MinWidth="300">
                                 <ComboBoxItem Content="Microsoft Validation OS"/>
                                 <ComboBoxItem Content="Hyper-V Server 2019"/>
+                                <ComboBoxItem Content="Azure Local"/>
                             </ComboBox>
                             <TextBlock x:Name="WelcomeDescription" Text="Validation OSのReactOSデスクトップ付き起動ISOを作成します。" FontSize="16" TextWrapping="Wrap"/>
                             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="24">
@@ -45,6 +46,8 @@
                             <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="HyperPath" PlaceholderText="ISOを選択" AutomationProperties.Name="Hyper-V Server ISO"/><Button x:Name="FirstIsoBrowseButton" Grid.Column="1" Content="参照…" Tag="hyper" Click="OnChooseIso"/></Grid>
                             <TextBlock x:Name="SecondIsoLabel" TextWrapping="Wrap"/>
                             <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="DonorPath" PlaceholderText="ISOを選択" AutomationProperties.Name="GUIのISO"/><Button x:Name="SecondIsoBrowseButton" Grid.Column="1" Content="参照…" Tag="donor" Click="OnChooseIso"/></Grid>
+                            <TextBlock x:Name="LanguageLabel" TextWrapping="Wrap" Visibility="Collapsed"/>
+                            <Grid x:Name="LanguageRow" ColumnSpacing="8" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="LanguagePath"/><Button x:Name="LanguageBrowseButton" Grid.Column="1" Content="参照…" Tag="language" Click="OnChooseIso"/></Grid>
                         </StackPanel>
                         <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Spacing="20">
                             <TextBlock Text="作成設定" FontSize="32" FontWeight="SemiBold"/>

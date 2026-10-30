@@ -26,6 +26,12 @@ public sealed partial class MainWindow : Window
     private readonly bool japanese = (Environment.GetEnvironmentVariable("FREEWIN_LANGUAGE") ?? CultureInfo.CurrentUICulture.Name).StartsWith("ja", StringComparison.OrdinalIgnoreCase);
     private string T(string ja, string en) => japanese ? ja : en;
     private bool IsValidationOs => TargetChoice.SelectedIndex == 0;
+    private bool IsAzureLocal => TargetChoice.SelectedIndex == 2;
+    private bool IsElevatedTarget => IsValidationOs || IsAzureLocal;
+    private string OutputIso => IsValidationOs
+        ? Path.Combine(jobPath!, "validation-build", "iso", "FreeWin-ValidationOS.iso")
+        : IsAzureLocal ? Path.Combine(jobPath!, "azure-local-build", "FreeWin-AzureLocal.iso")
+        : Path.Combine(jobPath!, "HyperV2019-GUI.iso");
 
     public MainWindow()
     {
@@ -58,13 +64,37 @@ public sealed partial class MainWindow : Window
     private void OnTargetChanged(object sender, SelectionChangedEventArgs e)
     {
         if (SourceHint is null) return;
-        HyperPath.Text = ""; DonorPath.Text = "";
+        HyperPath.Text = ""; DonorPath.Text = ""; LanguagePath.Text = "";
         ApplyTarget();
     }
 
     private void ApplyTarget()
     {
         TargetChoice.Header = T("対象OS", "Target OS");
+        LanguageLabel.Visibility = LanguageRow.Visibility = IsAzureLocal ? Visibility.Visible : Visibility.Collapsed;
+        if (IsAzureLocal)
+        {
+            WelcomeDescription.Text = T("Azure LocalにWindows Serverのデスクトップ（スタートメニュー、タスクバー、エクスプローラー）を追加したインストールISOを作成します。",
+                "Create an Azure Local installation ISO with the Windows Server desktop (Start menu, taskbar and File Explorer).");
+            RequirementsDescription.Text = T("同じビルドのAzure LocalとWindows Server（Desktop Experience）のISO、WIMまたはESD、同じビルドのWindows Server言語パックESD、Windows ADKのDeployment ToolsとWinPEアドオン、7-Zipが必要です。",
+                "You need Azure Local and Windows Server (Desktop Experience) ISO, WIM or ESD files of the same build, the Windows Server language pack ESD of that build, Windows ADK Deployment Tools, the WinPE add-on, and 7-Zip.");
+            SourceHint.Text = T("Windows ServerのDesktop Experienceパッケージを、DISMでAzure Localに追加します。", "DISM adds the Windows Server Desktop Experience packages to Azure Local.");
+            FirstIsoLabel.Text = T("Azure Local（動作確認済み: 26100.1）", "Azure Local (tested: 26100.1)");
+            SecondIsoLabel.Text = T("Windows Server 2025 Datacenter/Standard（Desktop Experience、動作確認済み: 26100.1）", "Windows Server 2025 Datacenter/Standard (Desktop Experience, tested: 26100.1)");
+            LanguageLabel.Text = T("Windows Server 言語パック（UUPのMicrosoft-Windows-Server-LanguagePack-Package-amd64-言語.esd）", "Windows Server language pack (UUP Microsoft-Windows-Server-LanguagePack-Package-amd64-language.esd)");
+            LanguagePath.PlaceholderText = T("ESDを選択", "Select an ESD");
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(LanguagePath, LanguageLabel.Text);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(LanguageBrowseButton, T(LanguageLabel.Text + "を選択", "Select " + LanguageLabel.Text));
+            HyperPath.PlaceholderText = DonorPath.PlaceholderText = T("ISO、WIMまたはESDを選択", "Select an ISO, WIM or ESD");
+            FirstIsoBrowseButton.Tag = "hyper"; SecondIsoBrowseButton.Tag = "donor";
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(HyperPath, FirstIsoLabel.Text);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(DonorPath, SecondIsoLabel.Text);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(FirstIsoBrowseButton, T(FirstIsoLabel.Text + "を選択", "Select " + FirstIsoLabel.Text));
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(SecondIsoBrowseButton, T(SecondIsoLabel.Text + "を選択", "Select " + SecondIsoLabel.Text));
+            WirelessOption.Visibility = Visibility.Collapsed;
+            return;
+        }
+        HyperPath.PlaceholderText = DonorPath.PlaceholderText = T("ISOを選択", "Select an ISO");
         WelcomeDescription.Text = IsValidationOs
             ? T("Validation OSのReactOSデスクトップ付き起動ISOを作成します。", "Create a bootable Validation OS ISO with the ReactOS desktop.")
             : T("Hyper-V Server 2019 のGUI付きISOを作成します。", "Create a Hyper-V Server 2019 ISO with a desktop.");
@@ -118,23 +148,29 @@ public sealed partial class MainWindow : Window
 
     private async void OnNext(object sender, RoutedEventArgs e)
     {
-        if (currentStep == 1 && new[] { HyperPath.Text, DonorPath.Text }.Any(p => !File.Exists(p) || !p.EndsWith(".iso", StringComparison.OrdinalIgnoreCase)))
-        { await ShowError(T("2つのISOファイルを選択してください。", "Select both ISO files.")); return; }
+        var extensions = IsAzureLocal ? new[] { ".iso", ".wim", ".esd" } : new[] { ".iso" };
+        if (currentStep == 1 && new[] { HyperPath.Text, DonorPath.Text }.Any(p => !File.Exists(p) || !extensions.Contains(Path.GetExtension(p), StringComparer.OrdinalIgnoreCase)))
+        { await ShowError(IsAzureLocal ? T("2つのISO、WIMまたはESDファイルを選択してください。", "Select both ISO, WIM or ESD files.") : T("2つのISOファイルを選択してください。", "Select both ISO files.")); return; }
+        if (currentStep == 1 && IsAzureLocal && (!File.Exists(LanguagePath.Text) || !Path.GetExtension(LanguagePath.Text).Equals(".esd", StringComparison.OrdinalIgnoreCase)))
+        { await ShowError(T("Windows Server 言語パックのESDを選択してください。", "Select the Windows Server language pack ESD.")); return; }
         if (currentStep == 2 && !Directory.Exists(DestinationPath.Text))
         { await ShowError(T("保存先フォルダーが見つかりません。", "The output folder does not exist.")); return; }
         if (currentStep == 2)
-            ReviewText.Text = $"{FirstIsoLabel.Text}\n{HyperPath.Text}\n\n{SecondIsoLabel.Text}\n{DonorPath.Text}\n\n{T("保存先", "Output folder")}\n{DestinationPath.Text}" + (IsValidationOs ? "" : $"\n\n{T("Wi-Fi機能", "Wi-Fi")}: {(WirelessOption.IsChecked == true ? T("追加する", "Include") : T("追加しない", "Do not include"))}");
+            ReviewText.Text = $"{FirstIsoLabel.Text}\n{HyperPath.Text}\n\n{SecondIsoLabel.Text}\n{DonorPath.Text}" + (IsAzureLocal ? $"\n\n{LanguageLabel.Text}\n{LanguagePath.Text}" : "") + $"\n\n{T("保存先", "Output folder")}\n{DestinationPath.Text}" + (IsElevatedTarget ? "" : $"\n\n{T("Wi-Fi機能", "Wi-Fi")}: {(WirelessOption.IsChecked == true ? T("追加する", "Include") : T("追加しない", "Do not include"))}");
         if (currentStep == 3) { await StartBuild(); return; }
         ShowStep(currentStep + 1);
     }
 
     private async void OnChooseIso(object sender, RoutedEventArgs e)
     {
-        var picker = new FileOpenPicker(); picker.FileTypeFilter.Add(".iso");
+        var tag = (string)((Button)sender).Tag;
+        var picker = new FileOpenPicker();
+        if (tag == "language") picker.FileTypeFilter.Add(".esd");
+        else { picker.FileTypeFilter.Add(".iso"); if (IsAzureLocal) { picker.FileTypeFilter.Add(".wim"); picker.FileTypeFilter.Add(".esd"); } }
         WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
         var file = await picker.PickSingleFileAsync();
         if (file is null) return;
-        switch ((string)((Button)sender).Tag) { case "hyper": HyperPath.Text = file.Path; break; case "donor": DonorPath.Text = file.Path; break; }
+        switch (tag) { case "hyper": HyperPath.Text = file.Path; break; case "donor": DonorPath.Text = file.Path; break; case "language": LanguagePath.Text = file.Path; break; }
     }
 
     private async void OnChooseFolder(object sender, RoutedEventArgs e)
@@ -157,17 +193,20 @@ public sealed partial class MainWindow : Window
             var winPeMedia = Path.Combine(adk, "Windows Preinstallation Environment", "amd64", "Media");
             if (File.Exists(Path.Combine(bootFiles, "oscdimg.exe"))) oscdimg = Path.Combine(bootFiles, "oscdimg.exe");
             var sevenZip = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "7-Zip", "7z.exe");
-            var required = new[] { worker, oscdimg, sevenZip }.Concat(IsValidationOs
+            var required = new[] { worker, oscdimg, sevenZip }.Concat(IsElevatedTarget
                 ? new[] { Path.Combine(winPeMedia, "bootmgr"), Path.Combine(bootFiles, "etfsboot.com"), Path.Combine(bootFiles, "efisys_noprompt.bin") }
+                    .Concat(IsAzureLocal ? new[] { Path.Combine(Path.GetDirectoryName(winPeMedia)!, "en-us", "winpe.wim") } : [])
                 : new[] { qemu, qemuImg });
             if (required.Any(p => !File.Exists(p))) throw new InvalidOperationException(T("必要なツールがありません。READMEの準備手順を実行してください。", "Required tools are missing. Follow the setup instructions in the README."));
             jobPath = Path.Combine(Path.GetFullPath(DestinationPath.Text), "freewin-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
             var settingsDirectory = Path.Combine(root, ".work", "jobs"); Directory.CreateDirectory(settingsDirectory);
             var settings = Path.Combine(settingsDirectory, Path.GetFileName(jobPath) + ".json");
             File.WriteAllText(settings, JsonSerializer.Serialize(new { Job = jobPath, Hyper = Path.GetFullPath(HyperPath.Text), Gui = Path.GetFullPath(DonorPath.Text), Qemu = qemu, QemuImg = qemuImg, Oscdimg = oscdimg, SevenZip = sevenZip, Wireless = WirelessOption.IsChecked == true, English = !japanese,
-                Target = IsValidationOs ? "ValidationOS" : "HyperV2019", Validation = Path.GetFullPath(HyperPath.Text), ReactOs = Path.GetFullPath(DonorPath.Text), WinPeMedia = winPeMedia, BootFiles = bootFiles }));
-            var start = new ProcessStartInfo(worker) { UseShellExecute = IsValidationOs, CreateNoWindow = true, WorkingDirectory = root };
-            if (IsValidationOs) { start.Verb = "runas"; start.WindowStyle = ProcessWindowStyle.Hidden; }
+                Target = IsValidationOs ? "ValidationOS" : IsAzureLocal ? "AzureLocal" : "HyperV2019", Validation = Path.GetFullPath(HyperPath.Text), ReactOs = Path.GetFullPath(DonorPath.Text),
+                AzureLocal = Path.GetFullPath(HyperPath.Text), ServerDesktop = Path.GetFullPath(DonorPath.Text),
+                LanguagePack = IsAzureLocal ? Path.GetFullPath(LanguagePath.Text) : "", WinPeMedia = winPeMedia, BootFiles = bootFiles }));
+            var start = new ProcessStartInfo(worker) { UseShellExecute = IsElevatedTarget, CreateNoWindow = true, WorkingDirectory = root };
+            if (IsElevatedTarget) { start.Verb = "runas"; start.WindowStyle = ProcessWindowStyle.Hidden; }
             start.ArgumentList.Add(settings);
             process = Process.Start(start) ?? throw new InvalidOperationException(T("ビルダーを起動できませんでした。", "Could not start the builder."));
             ShowStep(4); BuildProgress.IsIndeterminate = true; StatusText.Text = T("作成中…", "Building…"); timer.Start();
@@ -197,9 +236,7 @@ public sealed partial class MainWindow : Window
         catch (JsonException) { }
         if (!process.HasExited) return;
         timer.Stop(); BuildProgress.IsIndeterminate = false; BuildProgress.Value = process.ExitCode == 0 ? 100 : 0;
-        var success = process.ExitCode == 0 && File.Exists(IsValidationOs
-            ? Path.Combine(jobPath, "validation-build", "iso", "FreeWin-ValidationOS.iso")
-            : Path.Combine(jobPath, "HyperV2019-GUI.iso"));
+        var success = process.ExitCode == 0 && File.Exists(OutputIso);
         StatusText.Text = success ? T("ISOの作成が完了しました。", "The ISO is ready.") : T("作成に失敗しました。処理ログを確認してください。", "The build failed. Check the log.");
         OpenButton.IsEnabled = Directory.Exists(jobPath);
         process.Dispose(); process = null;
@@ -208,9 +245,7 @@ public sealed partial class MainWindow : Window
     private void OnOpenOutput(object sender, RoutedEventArgs e)
     {
         if (jobPath is null) return;
-        var iso = IsValidationOs
-            ? Path.Combine(jobPath, "validation-build", "iso", "FreeWin-ValidationOS.iso")
-            : Path.Combine(jobPath, "HyperV2019-GUI.iso");
+        var iso = OutputIso;
         var folder = File.Exists(iso) ? Path.GetDirectoryName(iso)! : jobPath;
         if (Directory.Exists(folder)) Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
     }

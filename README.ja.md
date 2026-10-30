@@ -2,7 +2,13 @@
 
 [English](README.md) | 日本語
 
-Microsoft Validation OSに、ReactOSまたはそのフォークのLiberNTのデスクトップ、スタートメニュー、タスクバー、設定ツールを組み込んだ起動ISOを作成します。Windowsのカーネルと中核DLLはそのまま使い、入力ISOは変更しません。
+デスクトップを持たないWindowsのエディションに、デスクトップを加えた起動ISOを作成します。
+
+- Microsoft Validation OSに、ReactOSまたはそのフォークのLiberNTのデスクトップ、スタートメニュー、タスクバー、設定ツールを組み込みます。Windowsのカーネルと中核DLLはそのまま使います。
+- Azure LocalにWindows Serverのデスクトップを加えます（[Azure Local](#azure-local)を参照）。
+- Hyper-V Server 2019にWindows Server 2019のデスクトップを加えます。
+
+入力ファイルは変更しません。
 
 ## 必要なもの
 
@@ -32,6 +38,20 @@ Validation OSのイメージは英語のみで、IME（日本語入力など）�
 ## Hyper-V Server 2019
 
 同じ言語のHyper-V Server ISOとWindows Server 2019 Desktop Experience ISOを用意します。動作確認済みビルドはそれぞれ17763.737と17763.1です。先に `scripts\Install-Dependencies.ps1` でQEMUとOSCDIMGを準備し、Windows Hypervisor Platformを有効にしてください。
+
+## Azure Local
+
+Windows Serverのデスクトップ（スタートメニュー、タスクバー、エクスプローラー、サーバーマネージャー）を備えたAzure LocalのインストールISOを作成します。Windows ServerのDesktop ExperienceのパッケージをDISMでAzure Localのイメージに追加します。エディションはAzure Local（Azure Stack HCI）のままです。
+
+7-Zip、Windows ADKのDeployment ToolsとWinPEアドオンのほかに、次のファイルが必要です。
+
+- Azure Local x64（ServerAzureStackHCICor）のISO、WIMまたはESD。動作確認済みビルド: 26100.1。
+- 同じビルドのWindows Server 2025 DatacenterまたはStandard（Desktop Experience）のISO、WIMまたはESD。動作確認済みビルド: 26100.1。
+- 同じビルドのWindows Server言語パック。Windows Server 2025またはAzure LocalのUUPファイルにある `Microsoft-Windows-Server-LanguagePack-Package-amd64-<言語>.esd` を使います。
+
+アプリで対象OSを **Azure Local** にし、3つのファイルと保存先を選んで、管理者権限の確認を許可します。保存先に `freewin-…\azure-local-build\FreeWin-AzureLocal.iso` ができます。
+
+このISOから起動するとディスクの一覧が表示され、`YES` の入力を求められます。入力するとディスク0を消去し、UEFIまたはBIOSに合わせてAzure Localをインストールして、通常の初回セットアップへ再起動します。累積更新は含まないので、セットアップ後に適用してください。
 
 ## ソースからのビルド
 

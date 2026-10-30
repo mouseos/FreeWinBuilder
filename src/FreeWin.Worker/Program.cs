@@ -29,6 +29,16 @@ try
         Status("complete", "ISOの作成が完了しました。");
         return 0;
     }
+    if (settings.Target == "AzureLocal")
+    {
+        Status("preparing", "Azure LocalとWindows Serverからデスクトップ付きISOを作成中");
+        var azureOutput = AzureLocalBuilder.Build(settings.AzureLocal, settings.ServerDesktop, settings.LanguagePack, settings.SevenZip,
+            settings.WinPeMedia, settings.BootFiles, settings.Oscdimg, Path.Combine(job, "azure-local-build"),
+            message => Status("servicing", message));
+        log.WriteLine(azureOutput);
+        Status("complete", "ISOの作成が完了しました。");
+        return 0;
+    }
     if (settings.Target != "HyperV2019") throw new InvalidDataException("Unknown build target: " + settings.Target);
     var recipe = Path.Combine(job, "recipe.json");
     using (var resource = typeof(SourceBuilder).Assembly.GetManifestResourceStream("FreeWin.Core.Resources.server2019-ja-17763.737-gui.json") ?? throw new InvalidDataException("Missing component recipe."))
@@ -54,13 +64,15 @@ catch (Exception ex)
 }
 
 internal sealed record Settings(string Job, string Hyper, string Gui, string Qemu, string QemuImg, string Oscdimg, string SevenZip, bool Wireless, bool English = false,
-    string Target = "HyperV2019", string Validation = "", string ReactOs = "", string WinPeMedia = "", string BootFiles = "");
+    string Target = "HyperV2019", string Validation = "", string ReactOs = "", string WinPeMedia = "", string BootFiles = "",
+    string AzureLocal = "", string ServerDesktop = "", string LanguagePack = "");
 
 internal static class EnglishMessage
 {
     private static readonly (string Japanese, string English)[] Phrases =
     [
         ("Validation OSとReactOSから起動ISOを作成中", "Building a bootable ISO from Validation OS and ReactOS"),
+        ("Azure LocalとWindows Serverからデスクトップ付きISOを作成中", "Building an Azure Local ISO with the desktop from Azure Local and Windows Server"),
         ("必要なコンポーネントが入力ISOに見つからないか、内容が一致しません: ", "A required component is missing or does not match: "),
         ("。別の同一言語・同一系列のISOをお試しください。", ". Try another ISO of the same language and release."),
         ("入力ISOから部品を準備中", "Preparing components from the source ISOs"),

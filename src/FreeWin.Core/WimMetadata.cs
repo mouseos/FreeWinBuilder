@@ -25,9 +25,12 @@ public static class WimMetadata
         stream.ReadExactly(data);
         var xml = XDocument.Parse(Encoding.Unicode.GetString(data).TrimStart('\ufeff').TrimEnd('\0'));
         return xml.Root!.Elements("IMAGE").Select(image => {
-            var windows = image.Element("WINDOWS") ?? throw new InvalidDataException("Missing Windows metadata.");
+            var index = (int?)image.Attribute("INDEX") ?? throw new InvalidDataException("Missing image index.");
+            var windows = image.Element("WINDOWS");
+            // UUP ESD files also carry setup media and recovery images without Windows metadata.
+            if (windows is null) return new WimImage(index, "", "", "", "", [], "", "");
             var version = windows.Element("VERSION") ?? throw new InvalidDataException("Missing version metadata.");
-            return new WimImage((int?)image.Attribute("INDEX") ?? throw new InvalidDataException("Missing image index."),
+            return new WimImage(index,
                 (string?)windows.Element("EDITIONID") ?? "", (string?)windows.Element("ARCH") ?? "",
                 (string?)version.Element("BUILD") ?? "", (string?)version.Element("SPBUILD") ?? "",
                 windows.Element("LANGUAGES")?.Elements("LANGUAGE").Select(e => e.Value).ToArray() ?? [],

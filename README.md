@@ -2,7 +2,13 @@
 
 English | [日本語](README.ja.md)
 
-Create a bootable Microsoft Validation OS ISO with the desktop, Start menu, taskbar and settings tools of ReactOS or its fork LiberNT. Windows keeps its own kernel and core DLLs. The source ISOs are unchanged.
+Create bootable Windows ISOs that add a desktop to editions that ship without one:
+
+- Microsoft Validation OS with the desktop, Start menu, taskbar and settings tools of ReactOS or its fork LiberNT. Windows keeps its own kernel and core DLLs.
+- Azure Local with the Windows Server desktop (see [Azure Local](#azure-local)).
+- Hyper-V Server 2019 with the Windows Server 2019 desktop.
+
+The source files are unchanged.
 
 ## Requirements
 
@@ -32,6 +38,20 @@ The app uses Japanese when Windows uses Japanese and English otherwise. To overr
 ## Hyper-V Server 2019
 
 Use Hyper-V Server and Windows Server 2019 Desktop Experience ISOs in the same language. Tested builds: 17763.737 and 17763.1. Run `scripts\Install-Dependencies.ps1` first to prepare QEMU and OSCDIMG, and enable Windows Hypervisor Platform.
+
+## Azure Local
+
+Creates an Azure Local installation ISO with the Windows Server desktop: Start menu, taskbar, File Explorer and Server Manager. DISM adds the Desktop Experience packages of Windows Server to the Azure Local image; the edition stays Azure Local (Azure Stack HCI).
+
+You need, besides 7-Zip and the Windows ADK Deployment Tools and WinPE add-on:
+
+- Azure Local x64 (ServerAzureStackHCICor) as an ISO, WIM or ESD. Tested build: 26100.1.
+- Windows Server 2025 Datacenter or Standard (Desktop Experience) as an ISO, WIM or ESD of the same build. Tested build: 26100.1.
+- The Windows Server language pack of the same build, `Microsoft-Windows-Server-LanguagePack-Package-amd64-<language>.esd` from the UUP files of Windows Server 2025 or Azure Local.
+
+Select **Azure Local** in the app, choose the three files and an output folder, and approve the administrator prompt. The result is `freewin-…\azure-local-build\FreeWin-AzureLocal.iso`.
+
+Booting the ISO lists the disks and asks you to type `YES`. It then erases disk 0, installs Azure Local for UEFI or BIOS and restarts into the normal first-start setup. Cumulative updates are not included; install them after setup.
 
 ## Build from source
 
