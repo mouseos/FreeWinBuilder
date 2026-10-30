@@ -49,6 +49,8 @@ You need, besides 7-Zip and the Windows ADK Deployment Tools and WinPE add-on:
 - Windows Server 2025 Datacenter or Standard (Desktop Experience) as an ISO, WIM or ESD of the same build. Tested build: 26100.1.
 - The Windows Server language pack of the same build, `Microsoft-Windows-Server-LanguagePack-Package-amd64-<language>.esd` from the UUP files of Windows Server 2025 or Azure Local.
 
+The language pack sets the display language. Use Windows Server media in that language: its desktop resources, fonts and input method come from there. Azure Local may be in any language; a different language becomes the default. Tested in English and Japanese.
+
 Select **Azure Local** in the app, choose the three files and an output folder, and approve the administrator prompt. The result is `freewin-…\azure-local-build\FreeWin-AzureLocal.iso`.
 
 Booting the ISO lists the disks and asks you to type `YES`. It then erases disk 0, installs Azure Local for UEFI or BIOS and restarts into the normal first-start setup. Cumulative updates are not included; install them after setup.

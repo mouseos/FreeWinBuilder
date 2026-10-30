@@ -78,7 +78,8 @@ public sealed partial class MainWindow : Window
                 "Create an Azure Local installation ISO with the Windows Server desktop (Start menu, taskbar and File Explorer).");
             RequirementsDescription.Text = T("同じビルドのAzure LocalとWindows Server（Desktop Experience）のISO、WIMまたはESD、同じビルドのWindows Server言語パックESD、Windows ADKのDeployment ToolsとWinPEアドオン、7-Zipが必要です。",
                 "You need Azure Local and Windows Server (Desktop Experience) ISO, WIM or ESD files of the same build, the Windows Server language pack ESD of that build, Windows ADK Deployment Tools, the WinPE add-on, and 7-Zip.");
-            SourceHint.Text = T("Windows ServerのDesktop Experienceパッケージを、DISMでAzure Localに追加します。", "DISM adds the Windows Server Desktop Experience packages to Azure Local.");
+            SourceHint.Text = T("Windows ServerのDesktop Experienceパッケージを、DISMでAzure Localに追加します。表示言語は言語パックの言語になります。Windows Serverは同じ言語のものを選んでください。",
+                "DISM adds the Windows Server Desktop Experience packages to Azure Local. The display language is the language pack's language; choose Windows Server media in that language.");
             FirstIsoLabel.Text = T("Azure Local（動作確認済み: 26100.1）", "Azure Local (tested: 26100.1)");
             SecondIsoLabel.Text = T("Windows Server 2025 Datacenter/Standard（Desktop Experience、動作確認済み: 26100.1）", "Windows Server 2025 Datacenter/Standard (Desktop Experience, tested: 26100.1)");
             LanguageLabel.Text = T("Windows Server 言語パック（UUPのMicrosoft-Windows-Server-LanguagePack-Package-amd64-言語.esd）", "Windows Server language pack (UUP Microsoft-Windows-Server-LanguagePack-Package-amd64-language.esd)");

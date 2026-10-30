@@ -49,6 +49,8 @@ Windows Serverのデスクトップ（スタートメニュー、タスクバー
 - 同じビルドのWindows Server 2025 DatacenterまたはStandard（Desktop Experience）のISO、WIMまたはESD。動作確認済みビルド: 26100.1。
 - 同じビルドのWindows Server言語パック。Windows Server 2025またはAzure LocalのUUPファイルにある `Microsoft-Windows-Server-LanguagePack-Package-amd64-<言語>.esd` を使います。
 
+表示言語は言語パックの言語になります。デスクトップの言語リソース、フォント、IMEはWindows Serverのイメージから取り込むので、Windows Serverは言語パックと同じ言語のものを使ってください。Azure Localの言語は問いません。違う言語の場合は、言語パックの言語を既定にします。英語と日本語で動作を確認しています。
+
 アプリで対象OSを **Azure Local** にし、3つのファイルと保存先を選んで、管理者権限の確認を許可します。保存先に `freewin-…\azure-local-build\FreeWin-AzureLocal.iso` ができます。
 
 このISOから起動するとディスクの一覧が表示され、`YES` の入力を求められます。入力するとディスク0を消去し、UEFIまたはBIOSに合わせてAzure Localをインストールして、通常の初回セットアップへ再起動します。累積更新は含まないので、セットアップ後に適用してください。

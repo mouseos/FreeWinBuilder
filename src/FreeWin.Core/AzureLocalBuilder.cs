@@ -57,8 +57,6 @@ public static class AzureLocalBuilder
             throw new InvalidDataException($"Azure Local build {azure.Build} and Windows Server build {server.Build} differ. Use media of the same build.");
         if (azure.Revision != server.Revision)
             log?.Invoke($"Warning: the revisions differ ({azure.Revision} and {server.Revision}). The tested combination uses the same revision.");
-        if (!server.Languages.Any(l => azure.Languages.Contains(l, StringComparer.OrdinalIgnoreCase)))
-            throw new InvalidDataException("The Azure Local and Windows Server media have no language in common.");
 
         var work = Path.Combine(output, "work");
         var scratch = Path.Combine(work, "scratch");
@@ -82,7 +80,11 @@ public static class AzureLocalBuilder
 
             var packages = PreparePackageSource(targetMount, serverMount, source, log);
             var languageSource = Path.Combine(work, "language-pack");
-            var languagePackage = PrepareLanguagePack(languagePack, languageSource, source, azure.Languages, dism, Run, log);
+            var languagePackage = PrepareLanguagePack(languagePack, languageSource, source, server.Languages, dism, Run, log);
+            var language = Path.GetFileName(languagePackage).Split('~')[3];
+            // The display language's desktop resources come from the Windows Server image,
+            // its core resources from the language pack.
+            var features = LanguageFeatures(serverMount, targetMount, source, language);
 
             // A print component's offline installer opens Control\Print, which Azure Local omits.
             var system = "FWB_AzSys_" + Guid.NewGuid().ToString("N");
@@ -101,9 +103,20 @@ public static class AzureLocalBuilder
             }
             // Adding the Server language pack again installs the language resources of the
             // newly added desktop features. It resolves every child package from one folder.
-            log?.Invoke("Adding the desktop language resources: " + Path.GetFileName(languagePackage).Split('~')[3]);
+            log?.Invoke("Adding the language pack: " + language);
             Run(dism, ["/Image:" + targetMount, "/Add-Package", "/PackagePath:" + languagePackage, "/ScratchDir:" + scratch,
                 "/LogPath:" + Path.Combine(work, "add-language.log")]);
+            if (features.Count > 0)
+            {
+                log?.Invoke("Adding language features (fonts, input method, handwriting, speech): " + string.Join(", ", features.Select(p => Path.GetFileName(p).Split('~')[0])));
+                Run(dism, ["/Image:" + targetMount, "/Add-Package", "/ScratchDir:" + scratch, "/LogPath:" + Path.Combine(work, "add-language-features.log"),
+                    .. features.Select(p => "/PackagePath:" + p)]);
+            }
+            if (!language.Equals(azure.DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+            {
+                log?.Invoke("Setting the default language to " + language);
+                Run(dism, ["/Image:" + targetMount, "/Set-AllIntl:" + language, "/LogPath:" + Path.Combine(work, "set-language.log")]);
+            }
 
             var software = "FWB_AzSw_" + Guid.NewGuid().ToString("N");
             ValidationOsMedia.WithHive("HKLM", software, Path.Combine(targetMount, "Windows", "System32", "config", "SOFTWARE"), log, () =>
@@ -177,6 +190,17 @@ public static class AzureLocalBuilder
             if (File.Exists(path)) return path;
         }
         throw new InvalidDataException("The ISO has no sources\\install.wim or install.esd: " + input);
+    }
+
+    /// <summary>Language feature packages (fonts, input method, OCR, speech) that the
+    /// Windows Server image has for the display language and Azure Local lacks.</summary>
+    private static List<string> LanguageFeatures(string server, string target, string source, string language)
+    {
+        var installed = Path.Combine(target, "Windows", "servicing", "Packages");
+        return Directory.EnumerateFiles(Path.Combine(server, "Windows", "servicing", "Packages"), "Microsoft-Windows-LanguageFeatures-*-Package~31bf3856ad364e35~amd64~~*.mum")
+            .Select(Path.GetFileName)
+            .Where(name => name!.Contains("-" + language + "-Package~", StringComparison.OrdinalIgnoreCase) && !File.Exists(Path.Combine(installed, name)))
+            .Select(name => Path.Combine(source, name!)).Where(File.Exists).ToList();
     }
 
     /// <summary>
