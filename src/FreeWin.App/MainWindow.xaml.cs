@@ -71,7 +71,7 @@ public sealed partial class MainWindow : Window
     private void ApplyTarget()
     {
         TargetChoice.Header = T("対象OS", "Target OS");
-        LanguageLabel.Visibility = LanguageRow.Visibility = IsAzureLocal ? Visibility.Visible : Visibility.Collapsed;
+        LanguageLabel.Visibility = LanguageRow.Visibility = LanguageHint.Visibility = IsAzureLocal ? Visibility.Visible : Visibility.Collapsed;
         if (IsAzureLocal)
         {
             WelcomeDescription.Text = T("Azure LocalにWindows Serverのデスクトップ（スタートメニュー、タスクバー、エクスプローラー）を追加したインストールISOを作成します。",
@@ -84,6 +84,8 @@ public sealed partial class MainWindow : Window
             SecondIsoLabel.Text = T("Windows Server 2025 Datacenter/Standard（Desktop Experience、動作確認済み: 26100.1）", "Windows Server 2025 Datacenter/Standard (Desktop Experience, tested: 26100.1)");
             LanguageLabel.Text = T("Windows Server 言語パック（UUPのMicrosoft-Windows-Server-LanguagePack-Package-amd64-言語.esd）", "Windows Server language pack (UUP Microsoft-Windows-Server-LanguagePack-Package-amd64-language.esd)");
             LanguagePath.PlaceholderText = T("ESDを選択", "Select an ESD");
+            LanguageHint.Text = T("この言語パックの言語が、インストール後の表示言語と初回セットアップの言語になります。デスクトップの文字、フォント、IMEは同じ言語のWindows Serverから取り込みます。たとえば日本語にするには、ja-JPの言語パックと日本語のWindows Serverを選びます。Azure Localは何語でもかまいません。",
+                "The language of this pack becomes the display language and the language of first-time setup. Desktop text, fonts and the input method come from the Windows Server media in the same language. For Japanese, for example, choose the ja-JP language pack and Japanese Windows Server media. Azure Local can be in any language.");
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(LanguagePath, LanguageLabel.Text);
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(LanguageBrowseButton, T(LanguageLabel.Text + "を選択", "Select " + LanguageLabel.Text));
             HyperPath.PlaceholderText = DonorPath.PlaceholderText = T("ISO、WIMまたはESDを選択", "Select an ISO, WIM or ESD");
@@ -157,9 +159,18 @@ public sealed partial class MainWindow : Window
         if (currentStep == 2 && !Directory.Exists(DestinationPath.Text))
         { await ShowError(T("保存先フォルダーが見つかりません。", "The output folder does not exist.")); return; }
         if (currentStep == 2)
-            ReviewText.Text = $"{FirstIsoLabel.Text}\n{HyperPath.Text}\n\n{SecondIsoLabel.Text}\n{DonorPath.Text}" + (IsAzureLocal ? $"\n\n{LanguageLabel.Text}\n{LanguagePath.Text}" : "") + $"\n\n{T("保存先", "Output folder")}\n{DestinationPath.Text}" + (IsElevatedTarget ? "" : $"\n\n{T("Wi-Fi機能", "Wi-Fi")}: {(WirelessOption.IsChecked == true ? T("追加する", "Include") : T("追加しない", "Do not include"))}");
+            ReviewText.Text = $"{FirstIsoLabel.Text}\n{HyperPath.Text}\n\n{SecondIsoLabel.Text}\n{DonorPath.Text}" + (IsAzureLocal ? $"\n\n{LanguageLabel.Text}\n{LanguagePath.Text}\n\n{T("表示言語", "Display language")}: {LanguageOf(LanguagePath.Text)}" : "") + $"\n\n{T("保存先", "Output folder")}\n{DestinationPath.Text}" + (IsElevatedTarget ? "" : $"\n\n{T("Wi-Fi機能", "Wi-Fi")}: {(WirelessOption.IsChecked == true ? T("追加する", "Include") : T("追加しない", "Do not include"))}");
         if (currentStep == 3) { await StartBuild(); return; }
         ShowStep(currentStep + 1);
+    }
+
+    // UUP names the language pack ...-amd64-<language>.esd; the builder reads the exact language from the package itself.
+    private string LanguageOf(string path)
+    {
+        var name = Path.GetFileNameWithoutExtension(path);
+        var tag = name.Contains("-amd64-", StringComparison.OrdinalIgnoreCase) ? name[(name.LastIndexOf("-amd64-", StringComparison.OrdinalIgnoreCase) + 7)..] : "";
+        try { return tag.Length > 0 ? $"{tag} ({(japanese ? new CultureInfo(tag).DisplayName : new CultureInfo(tag).EnglishName)})" : T("言語パックの言語", "the language pack's language"); }
+        catch (CultureNotFoundException) { return tag; }
     }
 
     private async void OnChooseIso(object sender, RoutedEventArgs e)

@@ -48,6 +48,7 @@
                             <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="DonorPath" PlaceholderText="ISOを選択" AutomationProperties.Name="GUIのISO"/><Button x:Name="SecondIsoBrowseButton" Grid.Column="1" Content="参照…" Tag="donor" Click="OnChooseIso"/></Grid>
                             <TextBlock x:Name="LanguageLabel" TextWrapping="Wrap" Visibility="Collapsed"/>
                             <Grid x:Name="LanguageRow" ColumnSpacing="8" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="LanguagePath"/><Button x:Name="LanguageBrowseButton" Grid.Column="1" Content="参照…" Tag="language" Click="OnChooseIso"/></Grid>
+                            <TextBlock x:Name="LanguageHint" TextWrapping="Wrap" Visibility="Collapsed" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
                         <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Spacing="20">
                             <TextBlock Text="作成設定" FontSize="32" FontWeight="SemiBold"/>
